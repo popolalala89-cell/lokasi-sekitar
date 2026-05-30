@@ -161,7 +161,11 @@ async function loadHistori() {
     d.data.forEach(function(loc) {
       var b = '<span class="badge bg-' + (loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y') + '">'+loc.status+'</span>';
       var f = '';
-      if (loc.foto_url && loc.foto_url.length > 0) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')">'; });
+      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
+        loc.foto_url.forEach(function(u) {
+          f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'">';
+        });
+      }
       h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
       h += '<div style="font-size:11px;color:#888;">'+new Date(loc.created_at).toLocaleString('id-ID')+'</div>';
       if (f) h += '<div style="margin-top:4px;">'+f+'</div>';
@@ -174,36 +178,36 @@ async function loadHistori() {
 // ===== PEDAGANG =====
 
 async function loadLaporanSekitar() {
-  document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">📡 Mengambil lokasi...</p>';
+  document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Memuat laporan...</p>';
   goTo('laporanSekitar');
   
-  if (!navigator.geolocation) {
-    document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">GPS tidak didukung</p>';
-    return;
-  }
+  // Ambil semua lokasi tanpa perlu GPS dulu
+  var d = await db.from('lokasi').select('*,profiles!inner(nama)').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false}).limit(30);
   
-  navigator.geolocation.getCurrentPosition(async function(pos) {
-    // Ambil semua lokasi sekitar (filter manual nanti)
-    var d = await db.from('lokasi').select('*,profiles(nama)').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false}).limit(30);
-    var h = '<h3 style="margin-bottom:10px;">Laporan PKL Sekitar</h3>';
-    if (d.data && d.data.length > 0) {
-      d.data.forEach(function(loc) {
-        var b = '<span class="badge bg-' + (loc.status==='diverifikasi'?'g':'y') + '">'+loc.status+'</span>';
-        var f = '';
-        if (loc.foto_url && loc.foto_url.length>0) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')">'; });
-        h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
-        if (loc.profiles) h += '<div style="font-size:11px;color:#888;">👤 '+loc.profiles.nama+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
-        if (f) h += '<div style="margin-top:4px;">'+f+'</div>';
-        h += '<div style="margin-top:6px;display:flex;gap:4px;">';
-        h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+loc.profiles?loc.profiles.nama:'?'+'\','+loc.id+')">⭐ Beri Poin</button>';
-        h += '<button class="btn-sm btn-o" onclick="window.open(\\\'https://www.google.com/maps?q='+loc.latitude+','+loc.longitude+'\\\')">🗺️ Buka Maps</button>';
-        h += '</div></div>';
-      });
-    } else h += '<p style="text-align:center;color:#888;padding:20px;">Belum ada laporan</p>';
-    document.getElementById('laporanSekitarList').innerHTML = h;
-  }, function() {
-    document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">❌ Gagal GPS. Coba lagi.</p>';
-  });
+  var h = '<h3 style="margin-bottom:10px;">📋 Laporan PKL Sekitar</h3>';
+  
+  if (d.error) {
+    h += '<p style="color:red;text-align:center;">Error: '+d.error.message+'</p>';
+  } else if (d.data && d.data.length > 0) {
+    d.data.forEach(function(loc) {
+      var b = '<span class="badge bg-' + (loc.status==='diverifikasi'?'g':'y') + '">'+loc.status+'</span>';
+      var f = '';
+      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
+        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'">'; });
+      }
+      h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
+      var nama = (loc.profiles && loc.profiles.nama) ? loc.profiles.nama : 'Anonim';
+      h += '<div style="font-size:11px;color:#888;">👤 '+nama+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
+      if (f) h += '<div style="margin-top:4px;">'+f+'</div>';
+      h += '<div style="margin-top:6px;display:flex;gap:4px;">';
+      h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+nama+'\',\''+loc.id+'\')">⭐ Beri Poin</button>';
+      h += '<button class="btn-sm btn-o" onclick="window.open(\\\'https://www.google.com/maps?q='+loc.latitude+','+loc.longitude+'\\\')">🗺️ Maps</button>';
+      h += '</div></div>';
+    });
+  } else {
+    h += '<p style="text-align:center;color:#888;padding:20px;">Belum ada laporan PKL</p>';
+  }
+  document.getElementById('laporanSekitarList').innerHTML = h;
 }
 
 async function beriPoin(uid, nama, lid) {
