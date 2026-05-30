@@ -155,29 +155,42 @@ Stored procedure untuk menambah poin user. Dipanggil dari client via `db.rpc()`.
 
 ---
 
-## PLANNED Tables (v2.1)
+## PLANNED → IMPLEMENTED (v2.1)
 
-### `missions`
+### `missions` ✅
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | SERIAL PK | — |
-| `vendor_id` | UUID FK | Pedagang |
+| `vendor_id` | UUID FK→auth.users | Pedagang pembuat |
 | `title` | TEXT | Judul misi |
-| `area` | TEXT | Area yang diminta |
-| `budget_poin` | INTEGER | Budget total |
+| `area` | TEXT | Deskripsi area |
+| `budget_poin` | INTEGER CHECK >= 10 | Budget poin total |
 | `deadline` | TIMESTAMPTZ | Deadline |
-| `status` | CHECK ('active','closed') | Status |
+| `status` | CHECK ('active','closed') DEFAULT 'active' | Status |
+| `created_at` | TIMESTAMPTZ | — |
+| `updated_at` | TIMESTAMPTZ | — |
 
-### `packages`
+**RLS:** Read active (all auth), Read own (vendor), Insert (pedagang), Update own, Admin all.
+**Trigger:** `auto_close_missions()` — auto-close saat deadline lewat.
+**Trigger:** `award_mission_points()` — +15 poin (bukan 10) jika laporan terkait misi.
+**Added to lokasi:** `mission_id` INT FK→missions.id (opsional).
+
+### `packages` ✅
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | SERIAL PK | — |
-| `user_id` | UUID FK | Pedagang |
-| `type` | CHECK | daily/weekly/monthly |
-| `price` | INTEGER | Harga |
+| `user_id` | UUID FK→auth.users | Pedagang |
+| `type` | CHECK ('daily','weekly','monthly') | Jenis |
+| `price` | INTEGER | Harga (Rp) |
 | `quota_total` | INTEGER | Total kuota |
-| `quota_used` | INTEGER | Kuota terpakai |
+| `quota_used` | INTEGER DEFAULT 0 | Terpakai |
+| `status` | CHECK ('active','expired','cancelled') DEFAULT 'active' | Status |
+| `purchased_at` | TIMESTAMPTZ DEFAULT now() | — |
 | `expires_at` | TIMESTAMPTZ | Expired |
+
+**RLS:** Read own, Insert (pedagang), Admin all.
+**Function:** `has_active_package(uid)` — validasi paket aktif.
+**Function:** `auto_expire_packages()` — auto-expire saat lewat masa.
 
 ---
 

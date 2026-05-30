@@ -1,62 +1,52 @@
 # Latest Schema Summary — Lokasi Sekitar
 
-> **Auto-generated:** 31 Mei 2026 | **Source:** Supabase Dashboard + `supabase-setup.sql`
->
-> ⚠️ RINGKASAN. Untuk detail lengkap, lihat `engineering/database_schema.md`.
+> **Updated:** 31 Mei 2026 | **Source:** Supabase Dashboard + SQL migrations
 
 ---
 
-## Active Tables
+## Active Tables (v2.0)
 
-### `profiles` — User profiles (extends Supabase Auth)
-id(UUID PK), email, nama, role(admin|informan|pedagang), poin(INT DEFAULT 0), avatar_url, created_at, updated_at
+### `profiles` — User profiles
+id(UUID PK), email, nama, role(admin|informan|pedagang), poin(INT), avatar_url, created_at, updated_at
 
-### `lokasi` — Laporan PKL dari informan
-id(SERIAL PK), user_id(FK), kategori_id(FK), nama_pedagang, latitude(DECIMAL), longitude(DECIMAL), deskripsi, foto_url(TEXT[]), status(pending|diverifikasi|ditolak), created_at, updated_at
+### `lokasi` — Laporan PKL
+id(SERIAL PK), user_id(FK), kategori_id(FK), **mission_id(FK NULL)** ← new v2.1, nama_pedagang, latitude, longitude, deskripsi, foto_url(TEXT[]), status(pending|diverifikasi|ditolak), created_at, updated_at
 
-### `kategori` — Kategori dagangan PKL
-id(SERIAL PK), nama, icon, warna. (7 row default: Makanan, Minuman, Sayur, Pakaian, Aksesoris, Elektronik, Lainnya)
-
+### `kategori` — 7 kategori default
 ### `produk` — Dagangan pedagang
-id(SERIAL PK), user_id(FK), lokasi_id(FK NULL), nama_produk, harga, foto_url, created_at
+### `laporan` — Log verifikasi admin
 
-### `laporan` — Log verifikasi
-id(SERIAL PK), lokasi_id(FK), user_id(FK), tipe(verifikasi|tutup|palsu), keterangan, created_at
+---
+
+## New Tables (v2.1) ✅
+
+### `missions` — Misi dari pedagang
+id(SERIAL PK), vendor_id(FK→auth.users), title, area, budget_poin(CHECK>=10), deadline, status(active|closed), created_at, updated_at
+
+**RLS:** Read active (all), CRUD own (vendor), Admin all.
+**Trigger:** `auto_close_missions()` — auto-close saat deadline.
+**Trigger:** `award_mission_points()` — +15 poin untuk laporan ke misi aktif.
+
+### `packages` — Paket berbayar
+id(SERIAL PK), user_id(FK→auth.users), type(daily|weekly|monthly), price, quota_total, quota_used(DEFAULT 0), status(active|expired|cancelled), purchased_at, expires_at
+
+**RLS:** Read own, Insert (pedagang), Admin all.
+**Trigger:** `use_package_quota()` — auto-kurangi quota saat laporan masuk ke misi.
+**Function:** `has_active_package(uid)` — cek paket aktif.
+**Function:** `auto_expire_packages()` — auto-expire.
 
 ---
 
 ## Storage
-
 | Bucket | Purpose |
 |--------|---------|
 | `pkl-photos` | Foto laporan (public read, auth upload) |
 
----
-
-## RPC Functions
-
+## RPC
 | Function | Args | Purpose |
 |----------|------|---------|
-| `increment_poin` | uid UUID, amount INT | Tambah poin user |
+| `increment_poin` | uid, amount | Tambah poin user |
 
 ---
 
-## Triggers
-
-| Trigger | Table | Purpose |
-|---------|-------|---------|
-| `on_auth_user_created` | auth.users | Auto-create profiles row |
-| `handle_new_user` | — | Set role='informan', copy email |
-
----
-
-## PLANNED (v2.1)
-
-- `missions` — Misi dari pedagang
-- `packages` — Paket berbayar
-- RPC untuk auto-close misi expired
-- Trigger award poin (gantikan client-side increment_poin)
-
----
-
-*Update setelah migrasi database.*
+*Last migration: 31 Mei 2026 — v2.1 schema (missions + packages)*

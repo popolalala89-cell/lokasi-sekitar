@@ -93,6 +93,7 @@
   </div>
   <div class="main">
     <button class="btn btn-o" onclick="showPage('laporPg')">📸 Lapor PKL Sekarang</button>
+    <button class="btn btn-w" onclick="showPage('cariMisiPg')">🔍 Cari Misi</button>
     <button class="btn btn-w" onclick="showPage('histPg')">📋 Riwayat Laporan</button>
     <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta Lokasi</button>
   </div>
@@ -117,6 +118,9 @@
       <option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option>
       <option value="7">📍 Lainnya</option>
     </select>
+    <select id="laporMisi" class="inp">
+      <option value="">📋 (Opsional) Pilih Misi</option>
+    </select>
     <div id="laporStatus" style="text-align:center;color:#FF6B35;display:none;padding:6px"></div>
     <button id="submitBtn" class="btn btn-o" onclick="submitReport()">🚀 Kirim Laporan</button>
   </div></div>
@@ -139,6 +143,8 @@
   </div>
   <div class="main">
     <button class="btn btn-o" onclick="loadLaporanSekitar()">🔍 Laporan PKL Sekitar</button>
+    <button class="btn btn-w" onclick="showPage('misiPg')">📋 Misi Saya</button>
+    <button class="btn btn-w" onclick="showPage('paketPg')">💳 Paket Saya</button>
     <button class="btn btn-w" onclick="showPage('dagPg')">📦 Dagangan Saya</button>
     <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta</button>
   </div>
@@ -162,6 +168,66 @@
   <div class="main">
     <button class="btn btn-o" onclick="addProduk()">+ Tambah Produk</button>
     <div id="dagList"></div>
+  </div>
+</div>
+
+<!-- ==================== PEDAGANG: MISI SAYA ==================== -->
+<div id="misiPg" class="pg">
+  <div class="hdr">
+    <div><h3>📋 Misi Saya</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('pedPg')">← Kembali</button>
+  </div>
+  <div class="main">
+    <button class="btn btn-o" onclick="showPage('buatMisiPg')">➕ Buat Misi Baru</button>
+    <div id="misiList"></div>
+  </div>
+</div>
+
+<!-- ==================== PEDAGANG: BUAT MISI ==================== -->
+<div id="buatMisiPg" class="pg">
+  <div class="hdr">
+    <div><h3>➕ Buat Misi</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('misiPg')">← Batal</button>
+  </div>
+  <div class="main"><div class="card">
+    <input id="misiTitle" class="inp" placeholder="Judul misi (contoh: Cari PKL ramai di daerah Pasar Minggu)">
+    <input id="misiArea" class="inp" placeholder="Area/lokasi yang diminta">
+    <input id="misiBudget" class="inp" type="number" placeholder="Budget poin (min 10, max 100)" min="10" max="100" value="20">
+    <input id="misiDeadline" class="inp" type="datetime-local">
+    <button id="btnBuatMisi" class="btn btn-o" onclick="createMission()">🚀 Buat Misi</button>
+  </div></div>
+</div>
+
+<!-- ==================== PEDAGANG: DETAIL MISI ==================== -->
+<div id="detailMisiPg" class="pg">
+  <div class="hdr">
+    <div><h3 id="detailMisiTitle">📋 Detail Misi</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('misiPg')">← Kembali</button>
+  </div>
+  <div class="main">
+    <div class="card" id="detailMisiInfo"></div>
+    <div id="detailMisiLaporan"></div>
+  </div>
+</div>
+
+<!-- ==================== INFORMAN: CARI MISI ==================== -->
+<div id="cariMisiPg" class="pg">
+  <div class="hdr">
+    <div><h3>🔍 Cari Misi</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('infPg')">← Kembali</button>
+  </div>
+  <div class="main" id="cariMisiList"></div>
+</div>
+
+<!-- ==================== PEDAGANG: PAKET SAYA ==================== -->
+<div id="paketPg" class="pg">
+  <div class="hdr">
+    <div><h3>💳 Paket Saya</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('pedPg')">← Kembali</button>
+  </div>
+  <div class="main">
+    <div class="card" id="paketAktif"></div>
+    <div class="card" id="paketBeli"></div>
   </div>
 </div>
 
@@ -391,6 +457,10 @@ function showPage(pageId) {
   if (pageId === 'histPg') loadHistori();
   if (pageId === 'dagPg') loadDagangan();
   if (pageId === 'mapPg') initMap();
+  if (pageId === 'misiPg') loadMyMissions();
+  if (pageId === 'buatMisiPg') setupMissionForm();
+  if (pageId === 'cariMisiPg') loadCariMisi();
+  if (pageId === 'paketPg') loadPaket();
 }
 
 /** Back navigation */
@@ -573,6 +643,9 @@ async function submitReport() {
         kategori_id: parseInt(kat),
         status: 'pending'
       };
+      // Sertakan mission_id jika dipilih
+      var misiId = document.getElementById('laporMisi').value;
+      if (misiId) lokasiData.mission_id = parseInt(misiId);
       if (fotoUrls.length > 0) lokasiData.foto_url = fotoUrls;
 
       var r = await db.from('lokasi').insert(lokasiData);
@@ -613,8 +686,22 @@ async function submitReport() {
 /** Load riwayat laporan user sendiri */
 async function loadHistori() {
   try {
-    var d = await db.from('lokasi').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+    // Load laporan + misi terkait
+    var d = await db.from('lokasi').select('*, missions(title)').eq('user_id', user.id).order('created_at', {ascending: false});
     var html = '';
+    
+    // Partisipasi misi
+    var misiIds = [];
+    if (d.data) {
+      d.data.forEach(function(loc) {
+        if (loc.mission_id && misiIds.indexOf(loc.mission_id) === -1) misiIds.push(loc.mission_id);
+      });
+    }
+    if (misiIds.length > 0) {
+      html += '<div class="card" style="background:#fff8e1"><b>🎯 Misi yang Diikuti</b><br>';
+      html += '<small>Anda berkontribusi di ' + misiIds.length + ' misi</small></div>';
+    }
+
     if (d.data && d.data.length > 0) {
       d.data.forEach(function(loc) {
         var b = '<span class="badge bg-' + (loc.status === 'diverifikasi' ? 'g' : loc.status === 'ditolak' ? 'r' : 'y') + '">' + escapeHtml(loc.status) + '</span>';
@@ -625,10 +712,11 @@ async function loadHistori() {
           });
         }
         html += '<div class="card"><b>' + escapeHtml(loc.deskripsi || 'PKL') + '</b> ' + b;
+        if (loc.missions) html += '<br><small>🎯 Misi: ' + escapeHtml(loc.missions.title || '?') + '</small>';
         html += '<br><small>' + formatDate(loc.created_at) + '</small><br>' + f + '</div>';
       });
     } else {
-      html = '<div class="empty-state">Belum ada laporan. Ayo lapor PKL sekarang!</div>';
+      html += '<div class="empty-state">Belum ada laporan. Ayo lapor PKL sekarang!</div>';
     }
     document.getElementById('histList').innerHTML = html;
   } catch(err) {
@@ -796,6 +884,253 @@ async function getProfileNames(userIds) {
     return map;
   } catch(e) {
     return {};
+  }
+}
+
+// ====================================================================
+// MODULE: MISSIONS — Pedagang & Informan
+// ====================================================================
+
+/** Load misi milik pedagang yang login */
+async function loadMyMissions() {
+  try {
+    var d = await db.from('missions').select('*').eq('vendor_id', user.id).order('created_at', {ascending: false});
+    var html = '';
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(m) {
+        var statusBadge = m.status === 'active' ? '<span class="badge bg-g">aktif</span>' : '<span class="badge bg-r">closed</span>';
+        html += '<div class="card"><div style="display:flex;justify-content:space-between"><b>' + escapeHtml(m.title) + '</b>' + statusBadge + '</div>';
+        html += '<small>📍 ' + escapeHtml(m.area) + ' | 🎯 Budget: ' + m.budget_poin + ' poin</small><br>';
+        html += '<small>⏰ Deadline: ' + formatDate(m.deadline) + '</small><br>';
+        html += '<button class="btn-sm btn-o" onclick="loadMissionDetail(' + m.id + ')">📋 Lihat Laporan</button> ';
+        if (m.status === 'active') html += '<button class="btn-sm btn-r" onclick="closeMission(' + m.id + ')">🔒 Tutup</button>';
+        html += '</div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada misi. Buat misi pertama Anda!</div>';
+    }
+    document.getElementById('misiList').innerHTML = html;
+  } catch(err) {
+    showToast('Gagal memuat misi', 'error');
+  }
+}
+
+/** Setup form buat misi (set default deadline 3 hari) */
+function setupMissionForm() {
+  var deadline = new Date();
+  deadline.setDate(deadline.getDate() + 3);
+  var dl = deadline.toISOString().slice(0, 16);
+  document.getElementById('misiDeadline').value = dl;
+}
+
+/** Buat misi baru (pedagang) */
+async function createMission() {
+  var title = document.getElementById('misiTitle').value.trim();
+  var area = document.getElementById('misiArea').value.trim();
+  var budget = parseInt(document.getElementById('misiBudget').value);
+  var deadline = document.getElementById('misiDeadline').value;
+
+  if (!title || !area) { showToast('Judul dan area wajib diisi', 'warning'); return; }
+  if (!budget || budget < 10) { showToast('Budget minimal 10 poin', 'warning'); return; }
+  if (budget > 100) { showToast('Budget maksimal 100 poin', 'warning'); return; }
+  if (!deadline) { showToast('Pilih deadline', 'warning'); return; }
+
+  var btn = document.getElementById('btnBuatMisi');
+  btn.disabled = true; btn.textContent = 'Membuat...';
+
+  try {
+    var r = await db.from('missions').insert({
+      vendor_id: user.id,
+      title: title,
+      area: area,
+      budget_poin: budget,
+      deadline: new Date(deadline).toISOString(),
+      status: 'active'
+    });
+    if (r.error) { showToast('Gagal: ' + r.error.message, 'error'); btn.disabled = false; btn.textContent = '🚀 Buat Misi'; return; }
+    showToast('✅ Misi berhasil dibuat!', 'success');
+    // Reset form
+    document.getElementById('misiTitle').value = '';
+    document.getElementById('misiArea').value = '';
+    document.getElementById('misiBudget').value = '20';
+    showPage('misiPg');
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = '🚀 Buat Misi';
+}
+
+/** Load detail misi + laporan yang masuk */
+var currentMissionId = null;
+
+async function loadMissionDetail(id) {
+  currentMissionId = id;
+  try {
+    var m = await db.from('missions').select('*').eq('id', id).single();
+    if (!m.data) { showToast('Misi tidak ditemukan', 'error'); return; }
+    var misi = m.data;
+
+    document.getElementById('detailMisiTitle').textContent = '📋 ' + misi.title;
+    var infoHtml = '<b>' + escapeHtml(misi.title) + '</b><br>';
+    infoHtml += '<small>📍 ' + escapeHtml(misi.area) + ' | 🎯 Budget: ' + misi.budget_poin + ' poin</small><br>';
+    infoHtml += '<small>⏰ Deadline: ' + formatDate(misi.deadline) + ' | Status: ' + misi.status + '</small>';
+
+    document.getElementById('detailMisiInfo').innerHTML = infoHtml;
+
+    // Load laporan yang terkait misi ini
+    var l = await db.from('lokasi').select('*').eq('mission_id', id).order('created_at', {ascending: false});
+    var userIds = [];
+    if (l.data) l.data.forEach(function(loc) { if (loc.user_id) userIds.push(loc.user_id); });
+    var nameMap = await getProfileNames(userIds);
+
+    var laporanHtml = '<b>Laporan Masuk:</b><br>';
+    if (l.data && l.data.length > 0) {
+      l.data.forEach(function(loc) {
+        var b = '<span class="badge bg-' + (loc.status === 'diverifikasi' ? 'g' : loc.status === 'ditolak' ? 'r' : 'y') + '">' + escapeHtml(loc.status) + '</span>';
+        laporanHtml += '<div class="card"><b>' + escapeHtml(loc.deskripsi || 'PKL') + '</b> ' + b;
+        laporanHtml += '<br><small>👤 ' + escapeHtml(nameMap[loc.user_id] || '?') + ' | ' + formatDate(loc.created_at) + '</small>';
+        if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
+          laporanHtml += '<br><img src="' + escapeHtml(loc.foto_url[0]) + '" class="thumb" alt="foto">';
+        }
+        laporanHtml += '</div>';
+      });
+    } else {
+      laporanHtml += '<div class="empty-state">Belum ada laporan masuk</div>';
+    }
+    document.getElementById('detailMisiLaporan').innerHTML = laporanHtml;
+    showPage('detailMisiPg');
+  } catch(err) {
+    showToast('Gagal memuat detail misi', 'error');
+  }
+}
+
+/** Tutup misi */
+async function closeMission(id) {
+  if (!confirm('Tutup misi ini? Laporan yang sudah masuk tetap bisa dilihat.')) return;
+  try {
+    await db.from('missions').update({status: 'closed'}).eq('id', id);
+    showToast('Misi ditutup', 'info');
+    loadMyMissions();
+  } catch(err) {
+    showToast('Gagal: ' + err.message, 'error');
+  }
+}
+
+/** Load misi aktif untuk informan */
+async function loadCariMisi() {
+  try {
+    var d = await db.from('missions').select('*').eq('status', 'active').order('created_at', {ascending: false});
+    var html = '';
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(m) {
+        html += '<div class="card"><b>📋 ' + escapeHtml(m.title) + '</b>';
+        html += '<br><small>📍 ' + escapeHtml(m.area) + ' | 🎯 ' + m.budget_poin + ' poin | ⏰ ' + formatDate(m.deadline) + '</small>';
+        html += '<br><button class="btn-sm btn-o" onclick="showPage(\\\'laporPg\\\');selectMission(' + m.id + ')">📸 Lapor ke Misi Ini</button></div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada misi aktif. Tunggu pedagang membuat misi.</div>';
+    }
+    document.getElementById('cariMisiList').innerHTML = html;
+  } catch(err) {
+    showToast('Gagal memuat misi', 'error');
+  }
+}
+
+/** Pilih misi di dropdown form lapor */
+function selectMission(id) {
+  var sel = document.getElementById('laporMisi');
+  sel.value = id;
+  showToast('Misi dipilih! Silakan ambil foto dan kirim laporan.', 'info');
+}
+
+/** Load dropdown misi aktif untuk form lapor */
+async function loadMisiDropdown() {
+  try {
+    var d = await db.from('missions').select('id,title').eq('status', 'active').order('created_at', {ascending: false});
+    var sel = document.getElementById('laporMisi');
+    sel.innerHTML = '<option value="">📋 (Opsional) Pilih Misi</option>';
+    if (d.data) {
+      d.data.forEach(function(m) {
+        sel.innerHTML += '<option value="' + m.id + '">📋 ' + escapeHtml(m.title) + '</option>';
+      });
+    }
+  } catch(e) {}
+}
+
+// Override showPage untuk lapor form: reload misi dropdown
+var _originalShowPage = showPage;
+showPage = function(pageId) {
+  _originalShowPage(pageId);
+  if (pageId === 'laporPg') loadMisiDropdown();
+};
+
+// ====================================================================
+// MODULE: PACKAGES — Paket Pedagang
+// ====================================================================
+
+/** Load paket & tampilkan */
+async function loadPaket() {
+  try {
+    var d = await db.from('packages').select('*').eq('user_id', user.id).order('purchased_at', {ascending: false});
+    var htmlAktif = '<b>💳 Paket Aktif</b><br>';
+    var hasActive = false;
+
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(p) {
+        if (p.status === 'active' && new Date(p.expires_at) > new Date()) {
+          hasActive = true;
+          var sisa = p.quota_total - p.quota_used;
+          var sisaClass = sisa <= 3 ? 'style="color:#dc3545;font-weight:bold"' : '';
+          htmlAktif += '<div class="card"><b>' + p.type.toUpperCase() + '</b> ';
+          htmlAktif += '<span ' + sisaClass + '>Sisa: ' + sisa + '/' + p.quota_total + ' info</span>';
+          htmlAktif += '<br><small>💰 Rp ' + p.price + ' | ⏰ Expired: ' + formatDate(p.expires_at) + '</small></div>';
+        }
+      });
+    }
+    if (!hasActive) htmlAktif += '<div class="empty-state">Belum ada paket aktif</div>';
+    document.getElementById('paketAktif').innerHTML = htmlAktif;
+
+    // Menu beli paket
+    var htmlBeli = '<b>🛒 Beli Paket</b><br>';
+    htmlBeli += '<div class="card"><b>📅 Harian</b> — 3 info/hari — Rp 10.000<br><button class="btn-sm btn-o" onclick="buyPackage(\\\'daily\\\')">Beli</button></div>';
+    htmlBeli += '<div class="card"><b>📅 Mingguan</b> — 15 info/minggu — Rp 50.000<br><button class="btn-sm btn-o" onclick="buyPackage(\\\'weekly\\\')">Beli</button></div>';
+    htmlBeli += '<div class="card"><b>📅 Bulanan</b> — 60 info/bulan — Rp 150.000<br><button class="btn-sm btn-o" onclick="buyPackage(\\\'monthly\\\')">Beli</button></div>';
+    document.getElementById('paketBeli').innerHTML = htmlBeli;
+  } catch(err) {
+    showToast('Gagal memuat paket', 'error');
+  }
+}
+
+/** Beli paket */
+async function buyPackage(type) {
+  if (!confirm('Beli paket ' + type + '? Pembayaran akan diverifikasi admin.')) return;
+
+  var config = {
+    daily: { price: 10000, quota: 3, days: 1 },
+    weekly: { price: 50000, quota: 15, days: 7 },
+    monthly: { price: 150000, quota: 60, days: 30 }
+  };
+  var cfg = config[type];
+  if (!cfg) return;
+
+  var expires = new Date();
+  expires.setDate(expires.getDate() + cfg.days);
+
+  try {
+    var r = await db.from('packages').insert({
+      user_id: user.id,
+      type: type,
+      price: cfg.price,
+      quota_total: cfg.quota,
+      quota_used: 0,
+      status: 'active',
+      expires_at: expires.toISOString()
+    });
+    if (r.error) { showToast('Gagal: ' + r.error.message, 'error'); return; }
+    showToast('✅ Paket ' + type + ' dibeli! Silakan transfer Rp ' + cfg.price.toLocaleString('id-ID'), 'success');
+    loadPaket();
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
   }
 }
 
