@@ -35,6 +35,10 @@ jobs:
     - name: Build Debug APK
       run: |
         cd android
+        # Download gradle-wrapper.jar if not exists
+        if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+          curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar
+        fi
         chmod +x gradlew
         ./gradlew assembleDebug
         
