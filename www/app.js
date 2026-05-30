@@ -18,19 +18,23 @@ let markerLayer = null;
 // ========================================
 
 function initApp() {
-  if (window.supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    checkAuth();
-  } else {
-    // Fallback: load Supabase from CDN
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-    script.onload = () => {
+  // Show something immediately so screen isn't blank
+  document.getElementById('loginScreen').classList.add('active');
+  
+  // Wait for Supabase to load (try for up to 10 seconds)
+  let attempts = 0;
+  const tryInit = setInterval(() => {
+    attempts++;
+    if (typeof window.supabase !== 'undefined') {
+      clearInterval(tryInit);
       supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       checkAuth();
-    };
-    document.head.appendChild(script);
-  }
+    } else if (attempts > 50) {
+      clearInterval(tryInit);
+      document.querySelector('#loginScreen .auth-card').innerHTML = 
+        '<h2>⚠️ Gagal</h2><p style="text-align:center;color:#888;">Tidak bisa terhubung ke server.<br>Periksa koneksi internet.</p>';
+    }
+  }, 200);
 }
 
 async function checkAuth() {
