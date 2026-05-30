@@ -143,15 +143,17 @@ async function checkSession(){
   catch(e){}
 }
 function showPg(id){
-  prevPg=document.querySelector('.pg:not([style*="display:none"])');if(prevPg)prevPg=prevPg.id;else prevPg='loginPg';
-  document.querySelectorAll('.pg').forEach(function(p){p.style.display='none'});
-  var el=document.getElementById(id);if(!el)return;el.style.display='block';
-  if(id==='adminPg'){document.getElementById('aname').textContent=profile?profile.nama:'';loadAdmin()}
-  if(id==='infPg')document.getElementById('iname').textContent=profile?profile.nama:''
-  if(id==='pedPg')document.getElementById('pname').textContent=profile?profile.nama:''
-  if(id==='histPg')loadHist()
-  if(id==='dagPg')loadDag()
-  if(id==='mapPg')initMap()
+  try {
+    prevPg=document.querySelector('.pg:not([style*="display:none"])');if(prevPg)prevPg=prevPg.id;else prevPg='loginPg';
+    document.querySelectorAll('.pg').forEach(function(p){p.style.display='none'});
+    var el=document.getElementById(id);if(!el){alert('Page not found: '+id);return;}el.style.display='block';
+    if(id==='adminPg'){document.getElementById('aname').textContent=profile?profile.nama:'';loadAdmin()}
+    if(id==='infPg')document.getElementById('iname').textContent=profile?profile.nama:''
+    if(id==='pedPg')document.getElementById('pname').textContent=profile?profile.nama:''
+    if(id==='histPg')loadHist()
+    if(id==='dagPg')loadDag()
+    if(id==='mapPg')initMap()
+  } catch(e) { alert('showPg error: '+e.message); }
 }
 function goBack(){if(prevPg&&document.getElementById(prevPg))showPg(prevPg);else showPg(profile?profile.role+'Pg':'loginPg')}
 
