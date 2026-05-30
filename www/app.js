@@ -26,8 +26,6 @@ function goTo(s) {
   document.querySelectorAll('.screen').forEach(function(x) { x.classList.remove('active'); });
   var el = document.getElementById(s);
   if (el) el.classList.add('active');
-  else { console.log('Screen not found: ' + s); return; }
-  
   if (s === 'admin') { document.getElementById('adminUser').textContent = profile ? profile.nama : ''; loadAdmin(); }
   if (s === 'informan') { document.getElementById('informanUser').textContent = profile ? profile.nama : ''; document.getElementById('informanPoin').textContent = (profile ? profile.poin || 0 : 0) + ' ⭐'; }
   if (s === 'pedagang') { document.getElementById('pedagangUser').textContent = profile ? profile.nama : ''; }
@@ -63,6 +61,17 @@ async function doRegister() {
 
 async function doLogout() { await db.auth.signOut(); user = null; profile = null; goTo('login'); }
 
+// ===== HELPER: get profiles map =====
+async function getProfileNames(userIds) {
+  var uniqueIds = [];
+  userIds.forEach(function(id) { if (uniqueIds.indexOf(id) === -1) uniqueIds.push(id); });
+  if (uniqueIds.length === 0) return {};
+  var d = await db.from('profiles').select('id,nama').in('id', uniqueIds);
+  var map = {};
+  if (d.data) d.data.forEach(function(p) { map[p.id] = p.nama || 'Anonim'; });
+  return map;
+}
+
 // ===== ADMIN =====
 async function loadAdmin() {
   var l = await db.from('lokasi').select('id',{count:'exact',head:true});
@@ -73,18 +82,25 @@ async function loadAdmin() {
   document.getElementById('sUser').textContent = u.count||0;
   document.getElementById('sPending').textContent = la.count||0;
   
-  var d = await db.from('lokasi').select('*,profiles(nama)').order('created_at',{ascending:false}).limit(30);
+  var d = await db.from('lokasi').select('*').order('created_at',{ascending:false}).limit(30);
+  var userIds = [];
+  if (d.data) d.data.forEach(function(loc) { if (loc.user_id) userIds.push(loc.user_id); });
+  var nameMap = await getProfileNames(userIds);
+  
   var h = '';
   if (d.data && d.data.length > 0) {
     d.data.forEach(function(loc) {
       var b = '<span class="badge bg-' + (loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y') + '">'+loc.status+'</span>';
       var f = '';
-      if (loc.foto_url && loc.foto_url.length > 0) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')">'; });
+      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
+        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" loading="lazy">'; });
+      }
       h += '<div class="row"><div><b>'+(loc.deskripsi||'Tanpa nama')+'</b>';
-      if (loc.profiles) h += ' <small style="color:#888;">oleh '+loc.profiles.nama+'</small>';
+      h += ' <small style="color:#888;">oleh '+(nameMap[loc.user_id]||'?')+'</small>';
       h += '<br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+' '+b+'</small>'+f+'</div>';
       h += '<div style="display:flex;gap:3px;">';
-      if (loc.status==='aktif') h += '<button class="btn-sm btn-g" onclick="verifikasi('+loc.id+')">✅</button>';
+      if (loc.status==='aktif') h += '<button class="btn-sm btn-g" onclick="verifikasi('+loc.id+')">✅ Verif</button>';
+      if (loc.status==='aktif') h += '<button class="btn-sm btn-r" onclick="tolak('+loc.id+')">❌ Tolak</button>';
       h += '<button class="btn-sm btn-r" onclick="hapusLok('+loc.id+')">🗑️</button>';
       h += '</div></div>';
     });
@@ -93,17 +109,14 @@ async function loadAdmin() {
 }
 async function verifikasi(id) { 
   await db.from('lokasi').update({status:'diverifikasi'}).eq('id',id);
-  // Tambah poin ke informan
   var l = await db.from('lokasi').select('user_id').eq('id',id).single();
-  if (l.data) {
-    await db.rpc('increment_poin', { uid: l.data.user_id, amount: 10 });
-  }
+  if (l.data) await db.rpc('increment_poin', { uid: l.data.user_id, amount: 10 });
   loadAdmin(); 
 }
+async function tolak(id) { await db.from('lokasi').update({status:'ditolak'}).eq('id',id); loadAdmin(); }
 async function hapusLok(id) { if (confirm('Hapus?')) { await db.from('lokasi').delete().eq('id',id); loadAdmin(); } }
 
 // ===== INFORMAN =====
-
 function previewFoto(input) {
   var pv = document.getElementById('laporPreview'); pv.innerHTML = '';
   if (input.files) {
@@ -148,7 +161,15 @@ async function submitLaporan() {
     st.style.display='none';
     
     if (r.error) { alert('❌ Gagal: ' + r.error.message); }
-    else { alert('✅ Laporan terkirim! +5 poin'); await db.rpc('increment_poin', { uid: user.id, amount: 5 }); }
+    else {
+      alert('✅ Laporan terkirim! +5 poin');
+      await db.rpc('increment_poin', { uid: user.id, amount: 5 });
+      // Reset form
+      document.getElementById('laporDesc').value = '';
+      document.getElementById('laporKat').value = '7';
+      document.getElementById('laporFoto').value = '';
+      document.getElementById('laporPreview').innerHTML = '';
+    }
     goTo('informan');
     await loadProfile();
   }, function(err) { st.style.display='none'; alert('❌ GPS: ' + err.message); goTo('informan'); }, { enableHighAccuracy: true });
@@ -156,14 +177,16 @@ async function submitLaporan() {
 
 async function loadHistori() {
   var d = await db.from('lokasi').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-  var h = '<h3 style="margin-bottom:10px;">Riwayat Laporan Saya</h3>';
+  var h = '<h3 style="margin-bottom:10px;">📋 Riwayat Laporan Saya</h3>';
   if (d.data && d.data.length > 0) {
     d.data.forEach(function(loc) {
       var b = '<span class="badge bg-' + (loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y') + '">'+loc.status+'</span>';
       var f = '';
       if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
+        // Use Supabase image transform for smaller thumbnails
         loc.foto_url.forEach(function(u) {
-          f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'">';
+          var thumbUrl = u + '?width=100&height=100&quality=60';
+          f += '<img src="'+thumbUrl+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" loading="lazy">';
         });
       }
       h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
@@ -176,13 +199,16 @@ async function loadHistori() {
 }
 
 // ===== PEDAGANG =====
-
 async function loadLaporanSekitar() {
   document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;padding:20px;">Memuat laporan...</p>';
   goTo('laporanSekitar');
   
-  // Ambil semua lokasi tanpa perlu GPS dulu
-  var d = await db.from('lokasi').select('*,profiles!inner(nama)').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false}).limit(30);
+  var d = await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false}).limit(30);
+  
+  // Get profile names separately
+  var userIds = [];
+  if (d.data) d.data.forEach(function(loc) { if (loc.user_id) userIds.push(loc.user_id); });
+  var nameMap = await getProfileNames(userIds);
   
   var h = '<h3 style="margin-bottom:10px;">📋 Laporan PKL Sekitar</h3>';
   
@@ -193,14 +219,16 @@ async function loadLaporanSekitar() {
       var b = '<span class="badge bg-' + (loc.status==='diverifikasi'?'g':'y') + '">'+loc.status+'</span>';
       var f = '';
       if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
-        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'">'; });
+        loc.foto_url.forEach(function(u) {
+          var thumbUrl = u + '?width=120&height=120&quality=60';
+          f += '<img src="'+thumbUrl+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" loading="lazy">';
+        });
       }
       h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
-      var nama = (loc.profiles && loc.profiles.nama) ? loc.profiles.nama : 'Anonim';
-      h += '<div style="font-size:11px;color:#888;">👤 '+nama+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
+      h += '<div style="font-size:11px;color:#888;">👤 '+(nameMap[loc.user_id]||'Anonim')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
       if (f) h += '<div style="margin-top:4px;">'+f+'</div>';
       h += '<div style="margin-top:6px;display:flex;gap:4px;">';
-      h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+nama+'\',\''+loc.id+'\')">⭐ Beri Poin</button>';
+      h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+(nameMap[loc.user_id]||'Anonim')+'\',\''+loc.id+'\')">⭐ Beri Poin</button>';
       h += '<button class="btn-sm btn-o" onclick="window.open(\\\'https://www.google.com/maps?q='+loc.latitude+','+loc.longitude+'\\\')">🗺️ Maps</button>';
       h += '</div></div>';
     });
@@ -217,9 +245,10 @@ async function beriPoin(uid, nama, lid) {
   alert('✅ ' + jml + ' poin diberikan!');
 }
 
+// ===== DAGANGAN =====
 async function loadDaganganSaya() {
   var d = await db.from('produk').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-  var h = '<h3 style="margin-bottom:10px;">Dagangan Saya</h3>';
+  var h = '<h3 style="margin-bottom:10px;">📦 Dagangan Saya</h3>';
   if (d.data && d.data.length > 0) {
     d.data.forEach(function(p) {
       h += '<div class="card"><div style="display:flex;justify-content:space-between;">';
@@ -267,7 +296,9 @@ async function loadMarkers() {
     var b = [];
     d.data.forEach(function(loc) {
       var pc = '<b>📍 '+(loc.deskripsi||'PKL')+'</b><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small>';
-      if (loc.foto_url && loc.foto_url.length>0) pc += '<br><img src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px;margin-top:3px;">';
+      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length>0) {
+        pc += '<br><img src="'+loc.foto_url[0]+'?width=150&quality=60" style="width:120px;border-radius:6px;margin-top:3px;" loading="lazy">';
+      }
       var m = L.marker([loc.latitude, loc.longitude]).addTo(markerLayer).bindPopup(pc);
       b.push([loc.latitude, loc.longitude]);
     });
