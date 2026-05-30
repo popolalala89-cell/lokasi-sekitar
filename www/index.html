@@ -193,6 +193,17 @@ function goBack() {
   else switchTo(profile ? profile.role : 'login');
 }
 
+// Helper: open Google Maps
+function openMap(lat, lng) {
+  var url = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+  try { window.open(url, '_system'); } catch(e) { location.href = url; }
+}
+
+// Helper: open image full screen
+function openImage(url) {
+  try { window.open(url, '_system'); } catch(e) { location.href = url; }
+}
+
 // ===== AUTH =====
 async function doLogin() {
   if (!db) { alert('Menghubungkan server...'); return; }
@@ -247,7 +258,7 @@ async function loadAdmin() {
       var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
       var f = '';
       if (loc.foto_url && Array.isArray(loc.foto_url)) {
-        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="window.open(\\\''+u+'\\\',\\\'_system\\\')" onerror="this.style.display=\\\'none\\\'">'; });
+        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="openImage(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" style="width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer;">'; });
       }
       h += '<div class="row"><div><b>'+(loc.deskripsi||'Tanpa nama')+'</b> <small>'+nameMap[loc.user_id]+'</small><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+' '+b+'</small>'+f+'</div>';
       h += '<div style="display:flex;gap:3px;">';
@@ -287,11 +298,16 @@ async function submitLaporan() {
   navigator.geolocation.getCurrentPosition(async function(pos) {
     st.textContent = '📤 Upload foto...';
     var fotoUrls = [];
+    var fotoErrors = 0;
     if (files && files.length > 0) {
       for (var i = 0; i < Math.min(files.length, 5); i++) {
         var f = files[i]; var fn = user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
         var up = await db.storage.from('pkl-photos').upload(fn, f, {contentType:f.type,upsert:false});
-        if (!up.error) { var u = db.storage.from('pkl-photos').getPublicUrl(fn); fotoUrls.push(u.data.publicUrl); }
+        if (up.error) { fotoErrors++; console.log('Upload error:', up.error.message); }
+        else {
+          var u = db.storage.from('pkl-photos').getPublicUrl(fn);
+          if (u.data && u.data.publicUrl) fotoUrls.push(u.data.publicUrl);
+        }
       }
     }
     st.textContent = '💾 Menyimpan...';
@@ -301,7 +317,11 @@ async function submitLaporan() {
     st.style.display='none';
     if (r.error) { alert('❌ '+r.error.message); }
     else {
-      alert('✅ Laporan terkirim! +5 poin');
+      var msg = '✅ Laporan terkirim!';
+      if (fotoUrls.length > 0) msg += '\n📸 '+fotoUrls.length+' foto terupload';
+      if (fotoErrors > 0) msg += '\n⚠️ '+fotoErrors+' foto gagal upload';
+      msg += '\n+5 poin';
+      alert(msg);
       await db.rpc('increment_poin',{uid:user.id,amount:5});
       document.getElementById('laporDesc').value=''; document.getElementById('laporKat').value='7';
       document.getElementById('laporFoto').value=''; document.getElementById('laporPrev').innerHTML='';
@@ -347,7 +367,7 @@ async function loadLaporanSekitar() {
       if (f) h += '<div>'+f+'</div>';
       h += '<div style="margin-top:6px;display:flex;gap:4px;">';
       h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+(nameMap[loc.user_id]||'?')+'\')">⭐ Beri Poin</button>';
-      h += '<button class="btn-sm btn-o" onclick="window.open(\\\'https://www.google.com/maps?q='+loc.latitude+','+loc.longitude+'\\\',\\\'_system\\\')">🗺️ Maps</button>';
+      h += '<button class="btn-sm btn-o" onclick="openMap('+loc.latitude+','+loc.longitude+')">🗺️ Maps</button>';
       h += '</div></div>';
     });
   } else h += '<p style="text-align:center;color:#888;">Belum ada laporan</p>';
