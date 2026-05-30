@@ -18,14 +18,20 @@ let markerLayer = null;
 // ========================================
 
 function initApp() {
-  document.getElementById('loginScreen').classList.add('active');
+  // Login screen is already visible by default (CSS)
   
-  if (typeof window.supabase !== 'undefined') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    checkAuth();
-  } else {
+  try {
+    if (typeof window.supabase !== 'undefined') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      checkAuth();
+    } else {
+      // Show error on login screen
+      document.querySelector('#loginScreen .auth-card').innerHTML = 
+        '<h2>⚠️ Error</h2><p style="text-align:center;color:#888;">Library gagal dimuat</p>';
+    }
+  } catch(e) {
     document.querySelector('#loginScreen .auth-card').innerHTML = 
-      '<h2>⚠️ Gagal</h2><p style="text-align:center;color:#888;">Tidak bisa muat library.<br>Coba restart aplikasi.</p>';
+      '<h2>⚠️ Error</h2><p style="text-align:center;color:#888;">' + e.message + '</p>';
   }
 }
 
