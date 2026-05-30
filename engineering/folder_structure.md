@@ -74,7 +74,9 @@ lokasi-sekitar/
 │
 ├── 📂 ai-context/                     # 🤖 KONTEKS UNTUK AI AGENT
 │   ├── 📄 AGENTS.md                   # ⭐ WAJIB DIBACA oleh setiap AI agent
-│   ├── 📄 PROJECT_MEMORY.md           # Sejarah project, pelajaran
+│   ├── 📄 PROJECT_MEMORY.md           # Timeline project + konvensi
+│   ├── 📄 ERROR_HISTORY.md            # 🆕 Catatan bug & error + solusi
+│   ├── 📄 LESSONS_LEARNED.md          # 🆕 Pelajaran dari error & keputusan
 │   ├── 📄 DECISIONS.md                # Log keputusan teknis + alasan
 │   ├── 📄 CURRENT_STATE.md            # State project saat ini
 │   └── 📄 TASK_BOARD.md               # Board task + progress

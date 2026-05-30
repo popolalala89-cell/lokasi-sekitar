@@ -1,9 +1,9 @@
-# PROJECT_MEMORY.md — Sejarah & Pelajaran Project
+# PROJECT_MEMORY.md — Sejarah & Konteks Historis
 
-> **Versi:** 1.0 | **Terakhir diupdate:** 31 Mei 2026
+> **Versi:** 2.0 | **Terakhir diupdate:** 31 Mei 2026
 >
-> **Tujuan:** Menyimpan pelajaran berharga, bug yang pernah terjadi, dan konteks historis
-> yang tidak tercatat di git commit messages.
+> **Tujuan:** Menyimpan timeline project, milestone, dan konvensi yang terbentuk.
+> Untuk bug & error, lihat `ERROR_HISTORY.md`. Untuk pelajaran teknis, lihat `LESSONS_LEARNED.md`.
 
 ---
 
@@ -14,64 +14,10 @@
 | 29 Mei 2026 | Ide awal | Plan dibuat sebagai Telegram Mini App |
 | 30 Mei 2026 | Pivot ke Capacitor | Beralih dari TMA ke Capacitor Android APK |
 | 30 Mei 2026 | v1.0 - v1.5.5 | Iterasi cepat — fitur dasar bekerja |
-| 31 Mei 2026 | v2.0 | Refactor + dokumentasi fondasi |
-| 31 Mei 2026 | Dokumentasi fondasi | Dibuat struktur docs/, architecture/, engineering/, ai-context/ |
-
----
-
-## Pelajaran Berharga (Lessons Learned)
-
-### LL-001: `loading="lazy"` Merusak Layout di Capacitor WebView
-- **Masalah:** Gambar tidak muncul atau layout rusak di Android
-- **Root cause:** Capacitor WebView Android tidak support `loading="lazy"` dengan baik
-- **Solusi:** JANGAN pakai `loading="lazy"`. Gunakan CSS `.thumb` 50x50 sebagai gantinya.
-- **Tanggal:** ~v1.3.0
-
-### LL-002: Gak Bisa Build APK di Termux
-- **Masalah:** Termux tidak support Android SDK build tools karena arsitektur berbeda
-- **Root cause:** Gradle + Android SDK butuh environment yang tidak tersedia di Termux
-- **Solusi:** Build via GitHub Actions CI/CD. Push → Actions build → download APK.
-- **Tanggal:** v1.0.0
-
-### LL-003: Supabase RLS Terlalu Ketat
-- **Masalah:** User tidak bisa lihat data sendiri setelah register
-- **Root cause:** RLS policy belum dibuat untuk tabel users
-- **Solusi:** Tambah policy: user bisa SELECT row sendiri, admin SELECT semua
-- **Tanggal:** v1.1.0
-
-### LL-004: Foto Base64 Terlalu Besar
-- **Masalah:** Upload foto gagal karena base64 string > 5MB
-- **Root cause:** Kamera HP modern menghasilkan foto 4000x3000 px
-- **Solusi:** Resize client-side ke max 1024px width sebelum upload
-- **Tanggal:** v1.2.0
-
-### LL-005: GPS Akurasi Rendah di Indoor
-- **Masalah:** GPS tidak akurat saat user di dalam ruangan
-- **Root cause:** GPS butuh line-of-sight ke satelit
-- **Solusi:** Tampilkan akurasi GPS (meter), warning jika > 50m
-- **Tanggal:** v1.4.0
-
----
-
-## Bug yang Pernah Terjadi (dan Fix-nya)
-
-### BUG-001: Double Submit Laporan
-- **Symptom:** Laporan terkirim 2x
-- **Root cause:** User tap tombol submit 2x sebelum request selesai
-- **Fix:** Disable tombol setelah tap pertama, enable lagi setelah response
-- **Tanggal fix:** v1.1.2
-
-### BUG-002: Session Expired Tengah-Tengah Upload
-- **Symptom:** Upload foto gagal dengan error "JWT expired"
-- **Root cause:** Session 1 jam, upload foto besar bisa > 1 menit → token expired
-- **Fix:** Refresh token sebelum upload besar (Supabase auto-refresh)
-- **Tanggal fix:** v1.3.1
-
-### BUG-003: Peta Blank di HP Tertentu
-- **Symptom:** Peta Leaflet tidak muncul di beberapa HP Xiaomi
-- **Root cause:** WebView tidak support WebGL di HP tertentu
-- **Fix:** Fallback ke tile PNG (bukan WebGL renderer)
-- **Tanggal fix:** v1.4.2
+| 31 Mei 2026 | v2.0 | Refactor + dokumentasi fondasi (28 file) |
+| 31 Mei 2026 | v2.0.1 | Maintenance: security hardening (Fase 1 — 10 task) |
+| 31 Mei 2026 | v2.1.0 | Misi & Paket: core crowdsourcing (Fase 2 — 19 task) |
+| 31 Mei 2026 | v2.2.0 | Gamifikasi: leaderboard, profil, badge, realtime (Fase 3 — 8 task) |
 
 ---
 
@@ -92,7 +38,19 @@
 3. **Commit message bahasa Indonesia**
 4. **Prioritas: mobile, offline-tolerant, ringan, simpel**
 5. **Gak boleh ada framework JS** — keep vanilla
+6. **Semua user input di-escape** — wajib `escapeHtml()` sebelum innerHTML
+7. **Notifikasi pakai `showToast()`** — tidak boleh `alert()`
+8. **GPS di-offset 50-200m** — privasi PKL di peta
 
 ---
 
-*Update file ini setiap kali ada pelajaran baru atau bug signifikan.*
+## Referensi ke File Lain
+
+- **Bug & Error:** `ai-context/ERROR_HISTORY.md` — riwayat error + solusi
+- **Pelajaran Teknis:** `ai-context/LESSONS_LEARNED.md` — pelajaran dari error & keputusan
+- **Keputusan Aktif:** `ai-context/DECISIONS.md` — log keputusan teknis
+- **Dokumentasi Fondasi:** Folder `docs/`, `architecture/`, `engineering/`
+
+---
+
+*Update file ini setiap ada milestone baru atau konvensi baru.*
