@@ -194,6 +194,7 @@ function goBack() {
 
 // ===== AUTH =====
 async function doLogin() {
+  if (!db) { alert('⏳ Menghubungkan...'); return; }
   var e=document.getElementById('lemail').value.trim(), p=document.getElementById('lpass').value.trim();
   if (!e||!p) { alert('Isi email dan password'); return; }
   var r=await db.auth.signInWithPassword({email:e,password:p});
