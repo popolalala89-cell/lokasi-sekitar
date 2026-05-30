@@ -1,32 +1,57 @@
 # Lokasi Sekitar 📍
 
-Aplikasi mobile untuk crowdsourcing lokasi PKL di sekitar kamu. Terintegrasi dengan Telegram bot @LokasiSekitarBot.
+Aplikasi mobile crowdsourcing lokasi PKL (Pedagang Kaki Lima). Informan lapor, pedagang pantau, admin verifikasi.
 
 ## Fitur
 
-- 📍 Bagikan lokasi ramai via GPS
-- 🗺️ Lihat lokasi PKL terdekat
-- 🔗 Integrasi Telegram bot
-- 📱 Aplikasi Android native (Capacitor)
+- 📸 **Informan**: Lapor lokasi PKL + foto via GPS
+- 🛒 **Pedagang**: Lihat laporan sekitar, beri poin, kelola dagangan
+- 🛡️ **Admin**: Verifikasi/tolak laporan, dashboard statistik
+- 🗺️ **Peta**: Lihat semua lokasi PKL di peta interaktif
+- ⭐ **Poin**: Sistem gamifikasi — informan dapat poin per laporan
 
-## Setup Development di Termux
+## Tech Stack
+
+- **Capacitor 5** — Hybrid app framework (Android APK)
+- **Vanilla JS** — No framework, lightweight single-file app
+- **Supabase** — Auth, database PostgreSQL, storage foto
+- **Leaflet.js** — Peta OpenStreetMap interaktif
+- **GitHub Actions** — CI/CD build APK otomatis
+
+## Struktur Project
+
+```
+lokasi-sekitar/
+├── www/                      # Web app
+│   ├── index.html            # Single-file app (HTML+CSS+JS)
+│   └── lib/                  # Supabase, Leaflet
+├── android/                  # Generated Capacitor (jangan edit manual)
+├── .github/workflows/        # CI/CD build APK
+│   └── android-build.yml
+├── supabase-*.sql            # Schema + RLS + Storage policies
+├── capacitor.config.json
+├── package.json
+└── README.md
+```
+
+## Setup Development
 
 ```bash
-cd lokasi-sekitar-capacitor
+cd ~/lokasi-sekitar
 
 # Install dependencies
 npm install
 
-# Sync Capacitor (buat folder android/)
+# Sync Capacitor (generate android/)
 npx cap sync android
 ```
 
 ## Build APK
 
-### Otomatis (GitHub Actions)
-Setiap push ke `main` akan otomatis build APK:
+### Otomatis via GitHub Actions
+Push ke `main` = build debug APK. Tag `v*` = build release APK (signed).
 
-1. Push code ke GitHub
+1. Push / tag ke GitHub
 2. Buka repo → **Actions** tab
 3. Download APK dari **Artifacts**
 
@@ -39,14 +64,10 @@ cd android
 ## Deploy ke GitHub
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit - Lokasi Sekitar v1.0"
-
-# Ganti dengan repo GitHub Pa
-git remote add origin https://github.com/Cibay89/lokasi-sekitar.git
-git branch -M main
-git push -u origin main
+git clone git@github.com:popolalala89-cell/lokasi-sekitar.git
+cd lokasi-sekitar
+# ... edit code ...
+git add . && git commit -m "deskripsi" && git push
 ```
 
 ## Release APK (Signed)
@@ -55,50 +76,30 @@ git push -u origin main
 ```bash
 keytool -genkey -v \
   -keystore my-release-key.jks \
-  -keyalg RSA \
-  -keysize 2048 \
-  -validity 10000 \
+  -keyalg RSA -keysize 2048 -validity 10000 \
   -alias lokasi-sekitar
 ```
 
 ### 2. Simpan ke GitHub Secrets
-```bash
-# Encode keystore
-base64 -w 0 my-release-key.jks
-```
+Encode keystore ke base64, simpan di **Repo Settings → Secrets → Actions**:
+- `ANDROID_KEYSTORE` — output `base64 -w 0 my-release-key.jks`
+- `KEYSTORE_PASSWORD` — password keystore
+- `KEY_ALIAS` — `lokasi-sekitar`
+- `KEY_PASSWORD` — password key
 
-Simpan di **Repo Settings → Secrets and variables → Actions**:
-- `ANDROID_KEYSTORE`: output base64 di atas
-- `KEYSTORE_PASSWORD`: password keystore
-- `KEY_ALIAS`: `lokasi-sekitar`
-- `KEY_PASSWORD`: password key
-
-### 3. Tag Release
+### 3. Tag & Push
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-## Struktur Project
+## Status Workflow
 
 ```
-lokasi-sekitar-capacitor/
-├── www/                    # Web app (HTML/CSS/JS)
-│   ├── index.html
-│   └── app.js
-├── android/                # Generated (jangan edit manual)
-├── .github/workflows/      # GitHub Actions
-├── capacitor.config.json   # Capacitor config
-├── package.json
-└── README.md
+Laporan baru → pending
+  ├── Admin verifikasi → diverifikasi (+10 poin)
+  └── Admin tolak → ditolak
 ```
-
-## Tech Stack
-
-- **Capacitor 6** - Framework hybrid app
-- **Vanilla JS** - No framework, lightweight
-- **GitHub Actions** - CI/CD build APK
-- **Telegram Bot API** - Backend integration
 
 ## License
 

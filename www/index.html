@@ -2,272 +2,807 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Lokasi Sekitar</title>
   <link rel="stylesheet" href="lib/leaflet.css" />
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:Arial,sans-serif;background:#f5f5f5}
+    body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;min-height:100dvh}
     .pg{display:none}
     #loginPg{display:block}
     .box{background:white;padding:24px;border-radius:16px;width:90%;max-width:350px;margin:40px auto;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
     .box h2{text-align:center;color:#FF6B35;margin-bottom:14px}
     .inp{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:10px}
     .btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:6px}
+    .btn:disabled{opacity:0.5;cursor:not-allowed}
     .btn-o{background:#FF6B35;color:#fff}.btn-w{background:#fff;color:#333;border:1px solid #ddd}
     .btn-g{background:#28a745;color:#fff}.btn-r{background:#dc3545;color:#fff}
-    .btn-sm{padding:5px 10px;font-size:11px;border-radius:5px;cursor:pointer;border:none;margin:2px}
+    .btn-sm{padding:6px 12px;font-size:11px;border-radius:6px;cursor:pointer;border:none;margin:2px;min-height:36px}
     .link{text-align:center;color:#FF6B35;font-size:13px;cursor:pointer;display:block;margin-top:8px}
     .hdr{background:linear-gradient(135deg,#FF6B35,#F7931E);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
-    .hdr h3{font-size:15px}.hdr s{font-size:10px;opacity:0.8}
+    .hdr h3{font-size:15px}.hdr small{font-size:10px;opacity:0.8}
     .main{padding:12px;max-width:600px;margin:0 auto}
     .card{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 6px rgba(0,0,0,0.05);margin-bottom:8px}
     .row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eee;font-size:12px;gap:6px}
-    .badge{padding:2px 6px;border-radius:6px;font-size:9px;font-weight:600}
+    .badge{padding:2px 8px;border-radius:6px;font-size:9px;font-weight:600;white-space:nowrap}
     .bg-y{background:#fff3cd;color:#856404}.bg-g{background:#d4edda;color:#155724}.bg-r{background:#f8d7da;color:#721C24}
-    .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+    .stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px}
     .stat{background:#fff;border-radius:8px;padding:10px;text-align:center}
-    .stat b{font-size:18px;color:#FF6B35;display:block}.stat s{font-size:9px;color:#888}
+    .stat b{font-size:18px;color:#FF6B35;display:block}.stat small{font-size:9px;color:#888}
     .thumb{width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer}
-    #mapDiv{height:350px}
+    #mapDiv{height:350px;border-radius:8px}
+    /* Toast notification */
+    .toast-container{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+    .toast{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;max-width:320px;text-align:center;animation:toastIn 0.3s ease;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,0.15)}
+    .toast-success{background:#28a745}.toast-error{background:#dc3545}.toast-warning{background:#ffc107;color:#333}.toast-info{background:#17a2b8}
+    @keyframes toastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+    .empty-state{text-align:center;color:#888;padding:30px 20px}
   </style>
 </head>
 <body>
 
-<!-- LOGIN (always shown first) -->
+<!-- ==================== AUTH: LOGIN ==================== -->
 <div id="loginPg" class="pg">
   <div class="box">
     <h2>📍 Lokasi Sekitar</h2>
-    <input id="lemail" class="inp" type="email" placeholder="Email">
-    <input id="lpass" class="inp" type="password" placeholder="Password">
-    <button class="btn btn-o" onclick="doLogin()">Masuk</button>
-    <span class="link" onclick="showPg('regPg')">Daftar akun baru</span>
+    <input id="loginEmail" class="inp" type="email" placeholder="Email" autocomplete="email">
+    <input id="loginPassword" class="inp" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" class="btn btn-o" onclick="handleLogin()">Masuk</button>
+    <span class="link" onclick="showPage('regPg')">Daftar akun baru</span>
   </div>
 </div>
 
-<!-- REGISTER -->
+<!-- ==================== AUTH: REGISTER ==================== -->
 <div id="regPg" class="pg">
   <div class="box">
     <h2>📝 Daftar</h2>
-    <input id="rnama" class="inp" placeholder="Nama">
-    <input id="remail" class="inp" type="email" placeholder="Email">
-    <input id="rpass" class="inp" type="password" placeholder="Password (min 6)">
-    <select id="rrole" class="inp"><option value="informan">🔍 Informan</option><option value="pedagang">🛒 Pedagang</option></select>
-    <button class="btn btn-o" onclick="doRegister()">Daftar</button>
-    <span class="link" onclick="showPg('loginPg')">Sudah punya akun? Masuk</span>
+    <input id="regNama" class="inp" placeholder="Nama lengkap">
+    <input id="regEmail" class="inp" type="email" placeholder="Email" autocomplete="email">
+    <input id="regPassword" class="inp" type="password" placeholder="Password (min 6 karakter)" autocomplete="new-password">
+    <select id="regRole" class="inp">
+      <option value="informan">🔍 Informan (pemburu lokasi)</option>
+      <option value="pedagang">🛒 Pedagang (butuh info)</option>
+    </select>
+    <button id="regBtn" class="btn btn-o" onclick="handleRegister()">Daftar</button>
+    <span class="link" onclick="showPage('loginPg')">Sudah punya akun? Masuk</span>
   </div>
 </div>
 
-<!-- ADMIN -->
+<!-- ==================== ADMIN DASHBOARD ==================== -->
 <div id="adminPg" class="pg">
-  <div class="hdr"><div><h3>🛡️ Admin</h3><s id="aname"></s></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="doLogout()">Keluar</button></div>
+  <div class="hdr">
+    <div><h3>🛡️ Admin</h3><small id="adminName"></small></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="handleLogout()">Keluar</button>
+  </div>
   <div class="main">
-    <div class="stats"><div class="stat"><b id="s1">-</b><s>Lokasi</s></div><div class="stat"><b id="s2">-</b><s>User</s></div></div>
-    <div class="card"><b>Verifikasi</b><div id="alist"></div></div>
+    <div class="stats">
+      <div class="stat"><b id="statTotal">-</b><small>Total Laporan</small></div>
+      <div class="stat"><b id="statPending">-</b><small>Pending</small></div>
+      <div class="stat"><b id="statVerified">-</b><small>Diverifikasi</small></div>
+      <div class="stat"><b id="statUser">-</b><small>User</small></div>
+    </div>
+    <div class="card"><b>Verifikasi Laporan</b><div id="adminList"></div></div>
   </div>
 </div>
 
-<!-- INFORMAN -->
+<!-- ==================== INFORMAN DASHBOARD ==================== -->
 <div id="infPg" class="pg">
-  <div class="hdr"><div><h3>🔍 Informan</h3><s id="iname"></s></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="doLogout()">Keluar</button></div>
+  <div class="hdr">
+    <div><h3>🔍 Informan</h3><small id="infName"></small></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="handleLogout()">Keluar</button>
+  </div>
   <div class="main">
-    <button class="btn btn-o" onclick="showPg('laporPg')">📸 Lapor PKL</button>
-    <button class="btn btn-w" onclick="showPg('histPg')">📋 Riwayat</button>
-    <button class="btn btn-w" onclick="showPg('mapPg')">🗺️ Peta</button>
+    <button class="btn btn-o" onclick="showPage('laporPg')">📸 Lapor PKL Sekarang</button>
+    <button class="btn btn-w" onclick="showPage('histPg')">📋 Riwayat Laporan</button>
+    <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta Lokasi</button>
   </div>
 </div>
 
-<!-- LAPOR -->
+<!-- ==================== INFORMAN: LAPOR ==================== -->
 <div id="laporPg" class="pg">
-  <div class="hdr"><div><h3>📸 Lapor</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('infPg')">← Batal</button></div>
+  <div class="hdr">
+    <div><h3>📸 Lapor PKL</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('infPg')">← Batal</button>
+  </div>
   <div class="main"><div class="card">
-    <label style="display:block;text-align:center;padding:10px;background:#f0f0f0;border-radius:8px;cursor:pointer;margin-bottom:8px">📷 Ambil Foto <input type="file" id="lfoto" accept="image/*" capture="environment" multiple onchange="prevL()" style="display:none"></label>
-    <div id="lprev" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px"></div>
-    <input id="ldesc" class="inp" placeholder="Deskripsi (nama, jualan apa)">
-    <select id="lkat" class="inp"><option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option><option value="3">🥬 Sayur</option><option value="4">👗 Pakaian</option><option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option><option value="7">📍 Lainnya</option></select>
-    <div id="lstat" style="text-align:center;color:#FF6B35;display:none;padding:6px"></div>
-    <button class="btn btn-o" onclick="submitL()">🚀 Kirim</button>
+    <label style="display:block;text-align:center;padding:12px;background:#f0f0f0;border-radius:8px;cursor:pointer;margin-bottom:8px">
+      📷 Ambil Foto (max 5)
+      <input type="file" id="laporFoto" accept="image/*" capture="environment" multiple onchange="previewPhotos()" style="display:none">
+    </label>
+    <div id="laporPreview" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px"></div>
+    <input id="laporDesc" class="inp" placeholder="Deskripsi (nama penjual, jualan apa)">
+    <select id="laporKat" class="inp">
+      <option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option>
+      <option value="3">🥬 Sayur</option><option value="4">👗 Pakaian</option>
+      <option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option>
+      <option value="7">📍 Lainnya</option>
+    </select>
+    <div id="laporStatus" style="text-align:center;color:#FF6B35;display:none;padding:6px"></div>
+    <button id="submitBtn" class="btn btn-o" onclick="submitReport()">🚀 Kirim Laporan</button>
   </div></div>
 </div>
 
-<!-- HISTORI -->
+<!-- ==================== INFORMAN: RIWAYAT ==================== -->
 <div id="histPg" class="pg">
-  <div class="hdr"><div><h3>📋 Riwayat</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('infPg')">← Kembali</button></div>
-  <div class="main" id="hlist"></div>
+  <div class="hdr">
+    <div><h3>📋 Riwayat</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('infPg')">← Kembali</button>
+  </div>
+  <div class="main" id="histList"></div>
 </div>
 
-<!-- PEDAGANG -->
+<!-- ==================== PEDAGANG DASHBOARD ==================== -->
 <div id="pedPg" class="pg">
-  <div class="hdr"><div><h3>🛒 Pedagang</h3><s id="pname"></s></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="doLogout()">Keluar</button></div>
+  <div class="hdr">
+    <div><h3>🛒 Pedagang</h3><small id="pedName"></small></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="handleLogout()">Keluar</button>
+  </div>
   <div class="main">
-    <button class="btn btn-o" onclick="loadSekitar()">🔍 Laporan Sekitar</button>
-    <button class="btn btn-w" onclick="showPg('dagPg')">📦 Dagangan Saya</button>
-    <button class="btn btn-w" onclick="showPg('mapPg')">🗺️ Peta</button>
+    <button class="btn btn-o" onclick="loadLaporanSekitar()">🔍 Laporan PKL Sekitar</button>
+    <button class="btn btn-w" onclick="showPage('dagPg')">📦 Dagangan Saya</button>
+    <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta</button>
   </div>
 </div>
 
-<!-- SEKITAR -->
+<!-- ==================== PEDAGANG: LAPORAN SEKITAR ==================== -->
 <div id="sekPg" class="pg">
-  <div class="hdr"><div><h3>🔍 Laporan Sekitar</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('pedPg')">← Kembali</button></div>
-  <div class="main" id="slist"></div>
+  <div class="hdr">
+    <div><h3>🔍 Laporan Sekitar</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('pedPg')">← Kembali</button>
+  </div>
+  <div class="main" id="sekList"></div>
 </div>
 
-<!-- DAGANGAN -->
+<!-- ==================== PEDAGANG: DAGANGAN ==================== -->
 <div id="dagPg" class="pg">
-  <div class="hdr"><div><h3>📦 Dagangan</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('pedPg')">← Kembali</button></div>
+  <div class="hdr">
+    <div><h3>📦 Dagangan</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('pedPg')">← Kembali</button>
+  </div>
   <div class="main">
-    <button class="btn btn-o" onclick="addProduk()">+ Tambah</button>
-    <div id="dlist"></div>
+    <button class="btn btn-o" onclick="addProduk()">+ Tambah Produk</button>
+    <div id="dagList"></div>
   </div>
 </div>
 
-<!-- MAP -->
+<!-- ==================== MAP ==================== -->
 <div id="mapPg" class="pg">
-  <div class="hdr"><div><h3>🗺️ Peta</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="goBack()">←</button></div>
+  <div class="hdr">
+    <div><h3>🗺️ Peta</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="goBack()">←</button>
+  </div>
   <div class="main"><div id="mapDiv"></div></div>
 </div>
 
+<!-- ==================== TOAST CONTAINER ==================== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ==================== SCRIPTS ==================== -->
 <script src="lib/supabase.min.js"></script>
 <script src="lib/leaflet.js"></script>
 <script>
-var db, user, profile, myMap, markerLayer, prevPg;
-var SUPABASE_URL='https://dnpbyfpbbwkgsfwmzlva.supabase.co';
-var SUPABASE_KEY='sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
+// ====================================================================
+// LOKASI SEKITAR v2.0.1
+// Single-file SPA — Capacitor Android App
+// ====================================================================
 
-function init(){
-  if(typeof supabase!=='undefined'){db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);checkSession()}
-  else setTimeout(init,500)
+// ---------- GLOBALS ----------
+var db, user, profile;                // Supabase client + session
+var myMap, markerLayer;               // Leaflet map state
+var prevPage = null;                  // Back navigation
+var isSubmitting = false;             // Prevent double-submit
+
+var SUPABASE_URL = 'https://dnpbyfpbbwkgsfwmzlva.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
+
+// ====================================================================
+// MODULE: UTILITY
+// ====================================================================
+
+/**
+ * Escape HTML untuk mencegah XSS.
+ * WAJIB dipakai sebelum render user-generated content ke innerHTML.
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
-async function checkSession(){
-  try{var r=await db.auth.getSession();if(r.data.session){user=r.data.session.user;var p=await db.from('profiles').select('*').eq('id',user.id).single();if(p.data){profile=p.data;showPg(pageForRole(profile.role))}}}
-  catch(e){}
+
+/**
+ * Custom toast notification menggantikan alert().
+ * @param {string} msg - Pesan untuk user (Bahasa Indonesia)
+ * @param {string} type - 'success' | 'error' | 'warning' | 'info'
+ */
+function showToast(msg, type) {
+  type = type || 'info';
+  var container = document.getElementById('toastContainer');
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(function() {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.3s';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 2500);
 }
-function pageForRole(role){
-  var map={informan:'infPg',pedagang:'pedPg',admin:'adminPg'};
-  return map[role]||'loginPg';
+
+/**
+ * Deteksi koneksi internet.
+ */
+function isOnline() {
+  return navigator.onLine !== false;
 }
-function showPg(id){
+
+/**
+ * Format tanggal ke locale Indonesia.
+ */
+function formatDate(dateStr) {
+  try { return new Date(dateStr).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'}); }
+  catch(e) { return dateStr || '-'; }
+}
+
+/**
+ * Random GPS offset 50-200 meter (privasi PKL — BR-070).
+ */
+function offsetGPS(lat, lng) {
+  // 0.001 degree ~ 111 meter. Random 50-200m → 0.00045-0.0018 degree
+  var offsetLat = (Math.random() * 0.0013 + 0.00045) * (Math.random() > 0.5 ? 1 : -1);
+  var offsetLng = (Math.random() * 0.0013 + 0.00045) * (Math.random() > 0.5 ? 1 : -1);
+  return [lat + offsetLat, lng + offsetLng];
+}
+
+/**
+ * Debug log dengan prefix.
+ */
+function log(module, msg, data) {
+  console.log('[LokasiSekitar][' + module + '] ' + msg, data || '');
+}
+
+// ====================================================================
+// MODULE: AUTH
+// ====================================================================
+
+/** Inisialisasi Supabase + cek session existing */
+function init() {
+  if (typeof supabase !== 'undefined') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    checkSession();
+  } else {
+    setTimeout(init, 500);
+  }
+}
+
+/** Cek apakah user sudah login (auto-login) */
+async function checkSession() {
   try {
-    // Check target exists FIRST before hiding anything
-    var el=document.getElementById(id);
-    if(!el){alert('Page not found: '+id);return;}
-    // Save current page for back navigation
-    var cur=document.querySelector('.pg:not([style*="display:none"])');
-    prevPg=cur?cur.id:'loginPg';
-    // Hide all, show target
-    document.querySelectorAll('.pg').forEach(function(p){p.style.display='none'});
-    el.style.display='block';
-    if(id==='adminPg'){document.getElementById('aname').textContent=profile?profile.nama:'';loadAdmin()}
-    if(id==='infPg')document.getElementById('iname').textContent=profile?profile.nama:''
-    if(id==='pedPg')document.getElementById('pname').textContent=profile?profile.nama:''
-    if(id==='histPg')loadHist()
-    if(id==='dagPg')loadDag()
-    if(id==='mapPg')initMap()
-  } catch(e) { alert('showPg error: '+e.message); }
-}
-function goBack(){if(prevPg&&document.getElementById(prevPg))showPg(prevPg);else showPg(profile?pageForRole(profile.role):'loginPg')}
-
-// AUTH
-async function doLogin(){
-  if(!db)return;var e=document.getElementById('lemail').value.trim(),p=document.getElementById('lpass').value.trim();
-  if(!e||!p){alert('Isi email dan password');return}
-  try{var r=await db.auth.signInWithPassword({email:e,password:p});if(r.error){alert('Gagal: '+r.error.message);return}
-  user=r.data.user;var pr=await db.from('profiles').select('*').eq('id',user.id).single();if(!pr.data){alert('Profile tidak ditemukan');return}
-  profile=pr.data;showPg(pageForRole(profile.role))}catch(err){alert('Error: '+err.message)}
-}
-async function doRegister(){
-  var n=document.getElementById('rnama').value.trim(),e=document.getElementById('remail').value.trim(),p=document.getElementById('rpass').value.trim(),rl=document.getElementById('rrole').value;
-  if(!n||!e||!p){alert('Isi semua field');return}if(p.length<6){alert('Password min 6');return}
-  var r=await db.auth.signUp({email:e,password:p});if(r.error){alert('Gagal: '+r.error.message);return}
-  await db.from('profiles').update({nama:n,role:rl}).eq('id',r.data.user.id);alert('✅ Registrasi berhasil!');showPg('loginPg')
-}
-async function doLogout(){await db.auth.signOut();user=null;profile=null;showPg('loginPg')}
-
-// ADMIN
-async function loadAdmin(){
-  var l=await db.from('lokasi').select('id',{count:'exact',head:true}),u=await db.from('profiles').select('id',{count:'exact',head:true});
-  document.getElementById('s1').textContent=l.count||0;document.getElementById('s2').textContent=u.count||0;
-  var d=await db.from('lokasi').select('*').order('created_at',{ascending:false}).limit(20);
-  var ids=[];if(d.data)d.data.forEach(function(loc){ids.push(loc.user_id)});
-  var nm={};if(ids.length>0){var np=await db.from('profiles').select('id,nama').in('id',ids);if(np.data)np.data.forEach(function(p){nm[p.id]=p.nama||'?'})}
-  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(loc){
-    var b='<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
-    var f='';if(loc.foto_url&&Array.isArray(loc.foto_url))loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">'});
-    h+='<div class="row"><div><b>'+(loc.deskripsi||'PKL')+'</b> '+nm[loc.user_id]+'<br>'+b+' '+f+'</div><div>';
-    if(loc.status==='aktif')h+='<button class="btn-sm btn-g" onclick="verify('+loc.id+')">✅</button> ';
-    if(loc.status==='aktif')h+='<button class="btn-sm btn-r" onclick="reject('+loc.id+')">❌</button> ';
-    h+='<button class="btn-sm btn-r" onclick="del('+loc.id+')">🗑️</button></div></div>';
-  })}else h='<p style="text-align:center;color:#888;padding:20px;">Belum ada data</p>';
-  document.getElementById('alist').innerHTML=h
-}
-async function verify(id){await db.from('lokasi').update({status:'diverifikasi'}).eq('id',id);var l=await db.from('lokasi').select('user_id').eq('id',id).single();if(l.data)await db.rpc('increment_poin',{uid:l.data.user_id,amount:10});loadAdmin()}
-async function reject(id){await db.from('lokasi').update({status:'ditolak'}).eq('id',id);loadAdmin()}
-async function del(id){if(confirm('Hapus?')){await db.from('lokasi').delete().eq('id',id);loadAdmin()}}
-
-// INFORMAN
-function prevL(){var pv=document.getElementById('lprev');pv.innerHTML='';var fs=document.getElementById('lfoto').files;for(var i=0;i<Math.min(fs.length||0,5);i++){(function(f){var fr=new FileReader();fr.onload=function(e){var img=document.createElement('img');img.src=e.target.result;img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px';pv.appendChild(img)};fr.readAsDataURL(f)})(fs[i])}}
-async function submitL(){
-  var desc=document.getElementById('ldesc').value.trim(),kat=document.getElementById('lkat').value,fs=document.getElementById('lfoto').files,st=document.getElementById('lstat');
-  st.style.display='block';if(!navigator.geolocation){alert('GPS tidak didukung');showPg('infPg');return}
-  st.textContent='📡 Ambil lokasi...';
-  navigator.geolocation.getCurrentPosition(async function(pos){
-    st.textContent='📤 Upload...';var urls=[],errs=[];
-    if(fs&&fs.length>0){for(var i=0;i<Math.min(fs.length,5);i++){
-      var f=fs[i],fn=user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
-      var up=await db.storage.from('pkl-photos').upload(fn,f,{contentType:f.type,upsert:false});
-      if(up.error)errs.push(up.error.message);else{var u=db.storage.from('pkl-photos').getPublicUrl(fn);if(u.data&&u.data.publicUrl)urls.push(u.data.publicUrl)}
-    }}
-    var ld={user_id:user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,deskripsi:desc||'PKL',kategori_id:parseInt(kat),status:'aktif'};
-    if(urls.length>0)ld.foto_url=urls;
-    var r=await db.from('lokasi').insert(ld);st.style.display='none';
-    var msg='✅ Laporan terkirim!';if(urls.length>0)msg+='\n📸 '+urls.length+' foto';if(errs.length>0)msg+='\n❌ '+errs[0];msg+='\n+5 poin';alert(msg);
-    await db.rpc('increment_poin',{uid:user.id,amount:5});
-    document.getElementById('ldesc').value='';document.getElementById('lkat').value='7';document.getElementById('lfoto').value='';document.getElementById('lprev').innerHTML='';
-    showPg('infPg')
-  },function(err){st.style.display='none';alert('❌ '+err.message);showPg('infPg')},{enableHighAccuracy:true})
-}
-async function loadHist(){
-  var d=await db.from('lokasi').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(loc){
-    var b='<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
-    var f='';if(loc.foto_url&&Array.isArray(loc.foto_url))loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">'});
-    h+='<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b> '+b+'<br><small>'+new Date(loc.created_at).toLocaleString('id-ID')+'</small><br>'+f+'</div>';
-  })}else h='<p style="text-align:center;color:#888;padding:20px;">Belum ada laporan</p>';
-  document.getElementById('hlist').innerHTML=h
+    var r = await db.auth.getSession();
+    if (r.data.session) {
+      user = r.data.session.user;
+      await loadProfile();
+      if (profile) showPage(getDashboardForRole(profile.role));
+    }
+  } catch(e) {
+    log('Auth', 'checkSession error', e);
+  }
 }
 
-// PEDAGANG
-async function loadSekitar(){
-  showPg('sekPg');document.getElementById('slist').innerHTML='<p style="text-align:center;color:#888;">Memuat...</p>';
-  var d=await db.from('lokasi').select('*').eq('status','diverifikasi').order('created_at',{ascending:false}).limit(20);
-  var ids=[];if(d.data)d.data.forEach(function(loc){ids.push(loc.user_id)});
-  var nm={};if(ids.length>0){var np=await db.from('profiles').select('id,nama').in('id',ids);if(np.data)np.data.forEach(function(p){nm[p.id]=p.nama||'?'})}
-  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(loc){
-    var f='';if(loc.foto_url&&Array.isArray(loc.foto_url))loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">'});
-    h+='<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b><br><small>👤 '+(nm[loc.user_id]||'?')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small><br>'+f;
-    h+='<br><button class="btn-sm btn-g" onclick="beriPoin(\\\''+loc.user_id+'\\\',\\\''+(nm[loc.user_id]||'?')+'\\\')">⭐ Poin</button> ';
-    h+='<button class="btn-sm btn-o" onclick="openMap('+loc.latitude+','+loc.longitude+')">🗺️ Maps</button></div>';
-  })}else h='<p style="text-align:center;color:#888;">Belum ada laporan diverifikasi</p>';
-  document.getElementById('slist').innerHTML=h
+/** Load profile dari tabel profiles */
+async function loadProfile() {
+  try {
+    var p = await db.from('profiles').select('*').eq('id', user.id).single();
+    if (p.data) profile = p.data;
+  } catch(e) {
+    log('Auth', 'loadProfile error', e);
+  }
 }
-function beriPoin(uid,nama){var j=prompt('Poin untuk '+(nama||'?')+'? (10-50)');if(!j||isNaN(j)||parseInt(j)<1)return;db.rpc('increment_poin',{uid:uid,amount:parseInt(j)}).then(function(){alert('✅ Poin diberikan!')})}
-async function loadDag(){
-  var d=await db.from('produk').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(p){h+='<div class="card"><b>📦 '+p.nama_produk+'</b> <span style="color:#FF6B35">'+(p.harga||'')+'</span><br><button class="btn-sm btn-r" onclick="delProduk('+p.id+')">🗑️</button></div>'})}else h='<p style="text-align:center;color:#888;">Belum ada produk</p>';
-  document.getElementById('dlist').innerHTML=h
+
+/** Mapping role → dashboard page */
+function getDashboardForRole(role) {
+  var map = { informan: 'infPg', pedagang: 'pedPg', admin: 'adminPg' };
+  return map[role] || 'loginPg';
 }
-function addProduk(){var n=prompt('Nama produk:');if(!n)return;var h=prompt('Harga:');db.from('produk').insert({user_id:user.id,nama_produk:n,harga:h||''}).then(function(r){if(r.error)alert(r.error.message);else{alert('✅ Ditambah!');loadDag()}})}
-async function delProduk(id){if(confirm('Hapus?')){await db.from('produk').delete().eq('id',id);loadDag()}}
 
-// MAP
-function initMap(){setTimeout(function(){var c=document.getElementById('mapDiv');if(myMap){myMap.invalidateSize();loadMarkers();return}L.Icon.Default.imagePath='lib/images/';myMap=L.map('mapDiv').setView([-6.2,106.8],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(myMap);markerLayer=L.layerGroup().addTo(myMap);loadMarkers()},300)}
-async function loadMarkers(){if(!myMap||!markerLayer)return;markerLayer.clearLayers();var d=await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false});if(d.data&&d.data.length>0){var b=[];d.data.forEach(function(loc){var pc='<b>📍 '+(loc.deskripsi||'PKL')+'</b><br>'+new Date(loc.created_at).toLocaleDateString('id-ID');if(loc.foto_url&&Array.isArray(loc.foto_url)&&loc.foto_url.length>0)pc+='<br><img src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px">';L.marker([loc.latitude,loc.longitude]).addTo(markerLayer).bindPopup(pc);b.push([loc.latitude,loc.longitude])});myMap.fitBounds(b,{padding:[30,30]})}}
+/** Login dengan email + password */
+async function handleLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value.trim();
+  if (!email || !password) { showToast('Isi email dan password', 'warning'); return; }
 
-// HELPERS
-function openMap(lat,lng){var u='https://www.google.com/maps?q='+lat+','+lng;try{window.open(u,'_system')}catch(e){location.href=u}}
-function openUrl(u){try{window.open(u,'_system')}catch(e){location.href=u}}
+  var btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Memproses...';
 
-document.addEventListener('DOMContentLoaded',init);
+  try {
+    var r = await db.auth.signInWithPassword({ email: email, password: password });
+    if (r.error) { showToast('Gagal: ' + r.error.message, 'error'); btn.disabled = false; btn.textContent = 'Masuk'; return; }
+    user = r.data.user;
+    await loadProfile();
+    if (!profile) { showToast('Profil tidak ditemukan', 'error'); btn.disabled = false; btn.textContent = 'Masuk'; return; }
+    showPage(getDashboardForRole(profile.role));
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Masuk';
+}
+
+/** Register user baru */
+async function handleRegister() {
+  var nama = document.getElementById('regNama').value.trim();
+  var email = document.getElementById('regEmail').value.trim();
+  var password = document.getElementById('regPassword').value.trim();
+  var role = document.getElementById('regRole').value;
+
+  if (!nama || !email || !password) { showToast('Isi semua field', 'warning'); return; }
+  if (password.length < 6) { showToast('Password minimal 6 karakter', 'warning'); return; }
+
+  var btn = document.getElementById('regBtn');
+  btn.disabled = true; btn.textContent = 'Mendaftarkan...';
+
+  try {
+    var r = await db.auth.signUp({ email: email, password: password });
+    if (r.error) { showToast('Gagal: ' + r.error.message, 'error'); btn.disabled = false; btn.textContent = 'Daftar'; return; }
+    // Update profile dengan nama + role
+    await db.from('profiles').update({ nama: nama, role: role }).eq('id', r.data.user.id);
+    showToast('✅ Registrasi berhasil! Silakan login.', 'success');
+    showPage('loginPg');
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = 'Daftar';
+}
+
+/** Logout */
+async function handleLogout() {
+  await db.auth.signOut();
+  user = null; profile = null;
+  showPage('loginPg');
+}
+
+// ====================================================================
+// MODULE: NAVIGATION
+// ====================================================================
+
+/** Tampilkan page & hide yang lain */
+function showPage(pageId) {
+  var el = document.getElementById(pageId);
+  if (!el) { log('Nav', 'Page not found', pageId); return; }
+
+  // Simpan page sebelumnya untuk back button
+  var cur = document.querySelector('.pg[style*="display:block"], .pg:not([style])');
+  // Cari yang visible
+  var allPages = document.querySelectorAll('.pg');
+  for (var i = 0; i < allPages.length; i++) {
+    if (allPages[i].style.display === 'block' || (!allPages[i].style.display && allPages[i].id === 'loginPg')) {
+      prevPage = allPages[i].id;
+      break;
+    }
+  }
+
+  // Hide all, show target
+  for (var j = 0; j < allPages.length; j++) allPages[j].style.display = 'none';
+  el.style.display = 'block';
+
+  // Trigger data load
+  if (pageId === 'adminPg') { document.getElementById('adminName').textContent = profile ? profile.nama : ''; loadAdmin(); }
+  if (pageId === 'infPg') document.getElementById('infName').textContent = profile ? profile.nama : '';
+  if (pageId === 'pedPg') document.getElementById('pedName').textContent = profile ? profile.nama : '';
+  if (pageId === 'histPg') loadHistori();
+  if (pageId === 'dagPg') loadDagangan();
+  if (pageId === 'mapPg') initMap();
+}
+
+/** Back navigation */
+function goBack() {
+  if (prevPage && document.getElementById(prevPage)) showPage(prevPage);
+  else showPage(profile ? getDashboardForRole(profile.role) : 'loginPg');
+}
+
+// ====================================================================
+// MODULE: ADMIN — Verifikasi Laporan
+// ====================================================================
+
+/** Load dashboard admin: statistik + list laporan pending */
+async function loadAdmin() {
+  try {
+    // Statistik (count queries)
+    var total = await db.from('lokasi').select('id', {count: 'exact', head: true});
+    var pending = await db.from('lokasi').select('id', {count: 'exact', head: true}).eq('status', 'pending');
+    var verified = await db.from('lokasi').select('id', {count: 'exact', head: true}).eq('status', 'diverifikasi');
+    var users = await db.from('profiles').select('id', {count: 'exact', head: true});
+
+    document.getElementById('statTotal').textContent = total.count || 0;
+    document.getElementById('statPending').textContent = pending.count || 0;
+    document.getElementById('statVerified').textContent = verified.count || 0;
+    document.getElementById('statUser').textContent = users.count || 0;
+
+    // List laporan (semua status, terbaru dulu)
+    var d = await db.from('lokasi').select('*').order('created_at', {ascending: false}).limit(30);
+    if (d.error) { showToast('Gagal load data: ' + d.error.message, 'error'); return; }
+
+    // Get nama user
+    var userIds = [];
+    if (d.data) d.data.forEach(function(loc) { if (loc.user_id) userIds.push(loc.user_id); });
+    var nameMap = await getProfileNames(userIds);
+
+    var html = '';
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(loc) {
+        var b = '<span class="badge bg-' + (loc.status === 'diverifikasi' ? 'g' : loc.status === 'ditolak' ? 'r' : 'y') + '">' + escapeHtml(loc.status) + '</span>';
+        var f = '';
+        if (loc.foto_url && Array.isArray(loc.foto_url)) {
+          loc.foto_url.forEach(function(u) {
+            f += '<img src="' + escapeHtml(u) + '" class="thumb" onclick="openExternal(\\\'' + escapeHtml(u) + '\\\')" alt="foto">';
+          });
+        }
+        html += '<div class="row"><div><b>' + escapeHtml(loc.deskripsi || 'PKL') + '</b> ';
+        html += '<small>oleh ' + escapeHtml(nameMap[loc.user_id] || '?') + '</small><br>' + b + ' ' + f + '</div><div>';
+        if (loc.status === 'pending') html += '<button class="btn-sm btn-g" onclick="verifyReport(' + loc.id + ')">✅ Verif</button> ';
+        if (loc.status === 'pending') html += '<button class="btn-sm btn-r" onclick="rejectReport(' + loc.id + ')">❌ Tolak</button> ';
+        html += '<button class="btn-sm btn-r" onclick="deleteReport(' + loc.id + ')">🗑️</button></div></div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada laporan</div>';
+    }
+    document.getElementById('adminList').innerHTML = html;
+  } catch(err) {
+    log('Admin', 'loadAdmin error', err);
+    showToast('Gagal memuat dashboard', 'error');
+  }
+}
+
+/** Verifikasi laporan → +10 poin untuk informan */
+async function verifyReport(id) {
+  try {
+    await db.from('lokasi').update({status: 'diverifikasi'}).eq('id', id);
+    var l = await db.from('lokasi').select('user_id').eq('id', id).single();
+    if (l.data && l.data.user_id) {
+      await db.rpc('increment_poin', {uid: l.data.user_id, amount: 10});
+    }
+    showToast('✅ Laporan diverifikasi! +10 poin', 'success');
+    loadAdmin();
+  } catch(err) {
+    showToast('Gagal: ' + err.message, 'error');
+  }
+}
+
+/** Tolak laporan */
+async function rejectReport(id) {
+  try {
+    await db.from('lokasi').update({status: 'ditolak'}).eq('id', id);
+    showToast('Laporan ditolak', 'warning');
+    loadAdmin();
+  } catch(err) {
+    showToast('Gagal: ' + err.message, 'error');
+  }
+}
+
+/** Hapus laporan (admin only) */
+async function deleteReport(id) {
+  if (!confirm('Hapus laporan ini?')) return;
+  try {
+    await db.from('lokasi').delete().eq('id', id);
+    showToast('Laporan dihapus', 'info');
+    loadAdmin();
+  } catch(err) {
+    showToast('Gagal: ' + err.message, 'error');
+  }
+}
+
+// ====================================================================
+// MODULE: INFORMAN — Lapor + Riwayat
+// ====================================================================
+
+/** Preview foto yang dipilih */
+function previewPhotos() {
+  var pv = document.getElementById('laporPreview');
+  pv.innerHTML = '';
+  var files = document.getElementById('laporFoto').files;
+  for (var i = 0; i < Math.min(files.length || 0, 5); i++) {
+    (function(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px';
+        pv.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    })(files[i]);
+  }
+}
+
+/** Kirim laporan baru (foto + GPS) */
+async function submitReport() {
+  if (isSubmitting) return; // prevent double-submit
+  isSubmitting = true;
+
+  var desc = document.getElementById('laporDesc').value.trim();
+  var kat = document.getElementById('laporKat').value;
+  var files = document.getElementById('laporFoto').files;
+  var st = document.getElementById('laporStatus');
+  var btn = document.getElementById('submitBtn');
+
+  st.style.display = 'block';
+  btn.disabled = true;
+
+  if (!isOnline()) {
+    showToast('Tidak ada koneksi internet. Coba lagi nanti.', 'warning');
+    st.style.display = 'none'; btn.disabled = false; isSubmitting = false;
+    return;
+  }
+
+  // Cek GPS
+  if (!navigator.geolocation) {
+    showToast('GPS tidak didukung di device ini', 'error');
+    st.style.display = 'none'; btn.disabled = false; isSubmitting = false;
+    return;
+  }
+
+  st.textContent = '📡 Mengambil lokasi...';
+
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    try {
+      st.textContent = '📤 Upload foto...';
+      var fotoUrls = [];
+      var uploadErrors = [];
+
+      if (files && files.length > 0) {
+        for (var i = 0; i < Math.min(files.length, 5); i++) {
+          var f = files[i];
+          var ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
+          var fn = user.id + '/' + Date.now() + '_' + i + '.' + ext;
+          var up = await db.storage.from('pkl-photos').upload(fn, f, {contentType: f.type, upsert: false});
+          if (up.error) {
+            uploadErrors.push(up.error.message);
+          } else {
+            var u = db.storage.from('pkl-photos').getPublicUrl(fn);
+            if (u.data && u.data.publicUrl) fotoUrls.push(u.data.publicUrl);
+          }
+        }
+      }
+
+      st.textContent = '💾 Menyimpan...';
+
+      var lokasiData = {
+        user_id: user.id,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        deskripsi: desc || 'PKL',
+        kategori_id: parseInt(kat),
+        status: 'pending'
+      };
+      if (fotoUrls.length > 0) lokasiData.foto_url = fotoUrls;
+
+      var r = await db.from('lokasi').insert(lokasiData);
+      st.style.display = 'none';
+      btn.disabled = false;
+
+      if (r.error) {
+        showToast('❌ Gagal menyimpan: ' + r.error.message, 'error');
+      } else {
+        var msg = '✅ Laporan terkirim!';
+        if (fotoUrls.length > 0) msg += ' ' + fotoUrls.length + ' foto.';
+        if (uploadErrors.length > 0) msg += ' ⚠️ ' + uploadErrors.length + ' foto gagal upload.';
+        msg += ' +5 poin. Menunggu verifikasi admin.';
+        showToast(msg, 'success');
+
+        // Bonus 5 poin untuk submit
+        await db.rpc('increment_poin', {uid: user.id, amount: 5});
+
+        // Reset form
+        document.getElementById('laporDesc').value = '';
+        document.getElementById('laporKat').value = '7';
+        document.getElementById('laporFoto').value = '';
+        document.getElementById('laporPreview').innerHTML = '';
+        showPage('infPg');
+      }
+    } catch(err) {
+      st.style.display = 'none'; btn.disabled = false;
+      showToast('Error: ' + err.message, 'error');
+      log('Report', 'submitReport error', err);
+    }
+    isSubmitting = false;
+  }, function(err) {
+    st.style.display = 'none'; btn.disabled = false; isSubmitting = false;
+    showToast('❌ Gagal ambil GPS: ' + err.message, 'error');
+  }, {enableHighAccuracy: true, timeout: 15000, maximumAge: 0});
+}
+
+/** Load riwayat laporan user sendiri */
+async function loadHistori() {
+  try {
+    var d = await db.from('lokasi').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+    var html = '';
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(loc) {
+        var b = '<span class="badge bg-' + (loc.status === 'diverifikasi' ? 'g' : loc.status === 'ditolak' ? 'r' : 'y') + '">' + escapeHtml(loc.status) + '</span>';
+        var f = '';
+        if (loc.foto_url && Array.isArray(loc.foto_url)) {
+          loc.foto_url.forEach(function(u) {
+            f += '<img src="' + escapeHtml(u) + '" class="thumb" onclick="openExternal(\\\'' + escapeHtml(u) + '\\\')" alt="foto">';
+          });
+        }
+        html += '<div class="card"><b>' + escapeHtml(loc.deskripsi || 'PKL') + '</b> ' + b;
+        html += '<br><small>' + formatDate(loc.created_at) + '</small><br>' + f + '</div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada laporan. Ayo lapor PKL sekarang!</div>';
+    }
+    document.getElementById('histList').innerHTML = html;
+  } catch(err) {
+    showToast('Gagal memuat riwayat', 'error');
+    log('Informan', 'loadHistori error', err);
+  }
+}
+
+// ====================================================================
+// MODULE: PEDAGANG — Laporan Sekitar + Dagangan
+// ====================================================================
+
+/** Load laporan diverifikasi untuk pedagang */
+async function loadLaporanSekitar() {
+  showPage('sekPg');
+  document.getElementById('sekList').innerHTML = '<div class="empty-state">Memuat laporan...</div>';
+
+  try {
+    var d = await db.from('lokasi').select('*').in('status', ['diverifikasi']).order('created_at', {ascending: false}).limit(30);
+    if (d.error) { showToast('Gagal: ' + d.error.message, 'error'); return; }
+
+    var userIds = [];
+    if (d.data) d.data.forEach(function(loc) { if (loc.user_id) userIds.push(loc.user_id); });
+    var nameMap = await getProfileNames(userIds);
+
+    var html = '';
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(loc) {
+        var f = '';
+        if (loc.foto_url && Array.isArray(loc.foto_url)) {
+          loc.foto_url.forEach(function(u) {
+            f += '<img src="' + escapeHtml(u) + '" class="thumb" onclick="openExternal(\\\'' + escapeHtml(u) + '\\\')" alt="foto">';
+          });
+        }
+        html += '<div class="card"><b>' + escapeHtml(loc.deskripsi || 'PKL') + '</b>';
+        html += '<br><small>👤 ' + escapeHtml(nameMap[loc.user_id] || '?') + ' | ' + formatDate(loc.created_at) + '</small><br>' + f;
+        html += '<br><button class="btn-sm btn-g" onclick="beriPoin(\\\'' + loc.user_id + '\\\', \\\'' + escapeHtml(nameMap[loc.user_id] || '?') + '\\\', \\\'' + loc.id + '\\\')">⭐ Beri Poin</button> ';
+        html += '<button class="btn-sm btn-o" onclick="openExternal(\\\'https://www.google.com/maps?q=' + loc.latitude + ',' + loc.longitude + '\\\')">🗺️ Maps</button></div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada laporan diverifikasi</div>';
+    }
+    document.getElementById('sekList').innerHTML = html;
+  } catch(err) {
+    showToast('Gagal memuat laporan', 'error');
+    log('Pedagang', 'loadLaporanSekitar error', err);
+  }
+}
+
+/** Pedagang memberi poin ke informan */
+function beriPoin(uid, nama, lid) {
+  var jml = prompt('Berapa poin untuk ' + (nama || 'informan') + '? (10-50)');
+  if (!jml || isNaN(jml) || parseInt(jml) < 1) return;
+  db.rpc('increment_poin', {uid: uid, amount: parseInt(jml)}).then(function() {
+    showToast('✅ ' + jml + ' poin diberikan ke ' + nama, 'success');
+  }).catch(function(err) {
+    showToast('Gagal: ' + err.message, 'error');
+  });
+}
+
+/** Load dagangan pedagang */
+async function loadDagangan() {
+  try {
+    var d = await db.from('produk').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
+    var html = '';
+    if (d.data && d.data.length > 0) {
+      d.data.forEach(function(p) {
+        html += '<div class="card"><div style="display:flex;justify-content:space-between;">';
+        html += '<b>📦 ' + escapeHtml(p.nama_produk) + '</b><span style="color:#FF6B35">' + escapeHtml(p.harga || '') + '</span>';
+        html += '</div><button class="btn-sm btn-r" style="margin-top:4px" onclick="deleteProduk(' + p.id + ')">🗑️ Hapus</button></div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada produk. Tambah sekarang!</div>';
+    }
+    document.getElementById('dagList').innerHTML = html;
+  } catch(err) {
+    showToast('Gagal memuat dagangan', 'error');
+  }
+}
+
+/** Tambah produk baru */
+function addProduk() {
+  var n = prompt('Nama produk/jualan:');
+  if (!n) return;
+  var h = prompt('Harga (contoh: Rp 10.000):') || '';
+  db.from('produk').insert({user_id: user.id, nama_produk: n, harga: h}).then(function(r) {
+    if (r.error) showToast('Gagal: ' + r.error.message, 'error');
+    else { showToast('✅ Produk ditambahkan!', 'success'); loadDagangan(); }
+  });
+}
+
+/** Hapus produk */
+async function deleteProduk(id) {
+  if (!confirm('Hapus produk ini?')) return;
+  try {
+    await db.from('produk').delete().eq('id', id);
+    showToast('Produk dihapus', 'info');
+    loadDagangan();
+  } catch(err) {
+    showToast('Gagal: ' + err.message, 'error');
+  }
+}
+
+// ====================================================================
+// MODULE: MAP — Peta Interaktif
+// ====================================================================
+
+/** Inisialisasi Leaflet map */
+function initMap() {
+  setTimeout(function() {
+    var container = document.getElementById('mapDiv');
+    if (myMap) { myMap.invalidateSize(); loadMarkers(); return; }
+    L.Icon.Default.imagePath = 'lib/images/';
+    myMap = L.map('mapDiv').setView([-6.2, 106.8], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19}).addTo(myMap);
+    markerLayer = L.layerGroup().addTo(myMap);
+    loadMarkers();
+  }, 300);
+}
+
+/** Load marker laporan di peta */
+async function loadMarkers() {
+  if (!myMap || !markerLayer) return;
+  markerLayer.clearLayers();
+
+  try {
+    var d = await db.from('lokasi').select('*').in('status', ['diverifikasi']).order('created_at', {ascending: false});
+    if (d.data && d.data.length > 0) {
+      var bounds = [];
+      d.data.forEach(function(loc) {
+        // Offset GPS untuk privasi (BR-070)
+        var coords = offsetGPS(loc.latitude, loc.longitude);
+        var popupHtml = '<b>📍 ' + escapeHtml(loc.deskripsi || 'PKL') + '</b><br><small>' + formatDate(loc.created_at) + '</small>';
+        if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length > 0) {
+          popupHtml += '<br><img src="' + escapeHtml(loc.foto_url[0]) + '" style="width:120px;border-radius:6px;margin-top:4px" alt="foto">';
+        }
+        L.marker(coords).addTo(markerLayer).bindPopup(popupHtml);
+        bounds.push(coords);
+      });
+      myMap.fitBounds(bounds, {padding: [30, 30]});
+    }
+  } catch(err) {
+    log('Map', 'loadMarkers error', err);
+  }
+}
+
+// ====================================================================
+// MODULE: HELPERS
+// ====================================================================
+
+/** Buka URL eksternal (Google Maps, foto full) */
+function openExternal(url) {
+  try { window.open(url, '_system'); } catch(e) { location.href = url; }
+}
+
+/** Ambil nama user dari array user_id → {id: nama} */
+async function getProfileNames(userIds) {
+  var uniqueIds = [];
+  userIds.forEach(function(id) { if (uniqueIds.indexOf(id) === -1) uniqueIds.push(id); });
+  if (uniqueIds.length === 0) return {};
+  try {
+    var d = await db.from('profiles').select('id,nama').in('id', uniqueIds);
+    var map = {};
+    if (d.data) d.data.forEach(function(p) { map[p.id] = p.nama || 'Anonim'; });
+    return map;
+  } catch(e) {
+    return {};
+  }
+}
+
+// ====================================================================
+// INIT
+// ====================================================================
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>

@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.lokasi (
   longitude DECIMAL(10,7) NOT NULL,
   deskripsi TEXT,
   foto_url TEXT[],
-  status TEXT CHECK (status IN ('aktif', 'tutup', 'diverifikasi', 'ditolak')) DEFAULT 'aktif',
+  status TEXT CHECK (status IN ('pending', 'diverifikasi', 'ditolak')) DEFAULT 'pending',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -136,7 +136,7 @@ CREATE TRIGGER on_auth_user_created
 CREATE OR REPLACE VIEW public.admin_dashboard AS
 SELECT
   (SELECT COUNT(*) FROM public.lokasi) AS total_lokasi,
-  (SELECT COUNT(*) FROM public.lokasi WHERE status = 'aktif') AS lokasi_aktif,
+  (SELECT COUNT(*) FROM public.lokasi WHERE status = 'pending') AS lokasi_pending,
   (SELECT COUNT(*) FROM public.lokasi WHERE status = 'diverifikasi') AS lokasi_terverifikasi,
   (SELECT COUNT(*) FROM public.profiles WHERE role = 'informan') AS total_informan,
   (SELECT COUNT(*) FROM public.profiles WHERE role = 'pedagang') AS total_pedagang,
