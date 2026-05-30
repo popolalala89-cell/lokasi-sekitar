@@ -1,0 +1,20 @@
+{
+  "name": "lokasi-sekitar",
+  "version": "1.0.0",
+  "description": "Telegram bot PKL crowdsourcing - Capacitor Android App",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx cap sync",
+    "build": "npx cap sync",
+    "android": "npx cap open android",
+    "sync": "npx cap sync android"
+  },
+  "keywords": ["capacitor", "android", "telegram", "pkl"],
+  "author": "Pa Popo",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/cli": "^6.0.0"
+  }
+}
