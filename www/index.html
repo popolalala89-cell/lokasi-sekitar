@@ -1,385 +1,261 @@
-     1|<!DOCTYPE html>
-     2|<html lang="id">
-     3|<head>
-     4|  <meta charset="UTF-8">
-     5|  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-     6|  <title>Lokasi Sekitar</title>
-     7|  <link rel="stylesheet" href="lib/leaflet.css" />
-     8|  <style>
-     9|    * { margin:0; padding:0; box-sizing:border-box; }
-    10|    body { font-family:Arial,sans-serif; background:#f5f5f5; }
-    11|    .page { display:none; }
-    12|    .page.on { display:block; }
-    13|    /* Login */
-    14|    #loginPage { min-height:100vh; padding:20px; }
-    15|    #loginPage.on { display:flex; justify-content:center; align-items:center; }
-    16|    .box { background:white; padding:24px; border-radius:16px; width:100%; max-width:350px; box-shadow:0 4px 20px rgba(0,0,0,0.1); }
-    17|    .box h2 { text-align:center; color:#FF6B35; margin-bottom:16px; }
-    18|    .inp { width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; font-size:14px; margin-bottom:10px; }
-    19|    .btn { width:100%; padding:14px; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; margin-bottom:6px; }
-    20|    .btn-orange { background:#FF6B35; color:white; }
-    21|    .btn-white { background:white; color:#333; border:1px solid #ddd; }
-    22|    .btn-green { background:#28a745; color:white; }
-    23|    .btn-red { background:#dc3545; color:white; }
-    24|    .btn-sm { padding:6px 12px; font-size:12px; border-radius:6px; cursor:pointer; border:none; margin:2px; }
-    25|    .link { text-align:center; color:#FF6B35; font-size:13px; cursor:pointer; margin-top:8px; display:block; }
-    26|    /* Header */
-    27|    .topbar { background:linear-gradient(135deg,#FF6B35,#F7931E); color:white; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
-    28|    .topbar h3 { font-size:16px; }
-    29|    .topbar span { font-size:11px; opacity:0.8; }
-    30|    .main { padding:16px; max-width:600px; margin:0 auto; }
-    31|    .card { background:white; border-radius:10px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.05); margin-bottom:10px; }
-    32|    .row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee; font-size:13px; }
-    33|    .badge { padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; }
-    34|    .badge-y { background:#fff3cd; color:#856404; }
-    35|    .badge-g { background:#d4edda; color:#155724; }
-    36|    .badge-r { background:#f8d7da; color:#721C24; }
-    37|    .thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; margin:2px; cursor:pointer; }
-    38|    .stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
-    39|    .stat { background:white; border-radius:8px; padding:12px; text-align:center; }
-    40|    .stat b { font-size:20px; color:#FF6B35; display:block; }
-    41|    .stat s { font-size:10px; color:#888; }
-    42|    /* Map */
-    43|    #mapPage .main { padding:0; max-width:100%; }
-    44|    #mapContainer { height:400px; }
-    45|  </style>
-    46|</head>
-    47|<body>
-    48|
-    49|<!-- LOGIN -->
-    50|<div id="loginPage" class="page on">
-    51|  <div class="box">
-    52|    <h2>📍 Lokasi Sekitar</h2>
-    53|    <input id="lemail" class="inp" type="email" placeholder="Email">
-    54|    <input id="lpass" class="inp" type="password" placeholder="Password">
-    55|    <button class="btn btn-orange" onclick="doLogin()">Masuk</button>
-    56|    <span class="link" onclick="goPage('registerPage')">Daftar akun baru</span>
-    57|  </div>
-    58|</div>
-    59|
-    60|<!-- REGISTER -->
-    61|<div id="registerPage" class="page">
-    62|  <div class="box" style="margin:50px auto;">
-    63|    <h2>📝 Daftar</h2>
-    64|    <input id="rnama" class="inp" placeholder="Nama">
-    65|    <input id="remail" class="inp" type="email" placeholder="Email">
-    66|    <input id="rpass" class="inp" type="password" placeholder="Password (min 6)">
-    67|    <select id="rrole" class="inp"><option value="informan">🔍 Informan</option><option value="pedagang">🛒 Pedagang</option></select>
-    68|    <button class="btn btn-orange" onclick="doRegister()">Daftar</button>
-    69|    <span class="link" onclick="goPage('loginPage')">Sudah punya akun? Masuk</span>
-    70|  </div>
-    71|</div>
-    72|
-    73|<!-- ADMIN -->
-    74|<div id="adminPage" class="page">
-    75|  <div class="topbar">
-    76|    <div><h3>🛡️ Admin</h3><span id="aname"></span></div>
-    77|    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="doLogout()">Keluar</button>
-    78|  </div>
-    79|  <div class="main">
-    80|    <div class="stats">
-    81|      <div class="stat"><b id="s1">-</b><s>Lokasi</s></div>
-    82|      <div class="stat"><b id="s2">-</b><s>User</s></div>
-    83|    </div>
-    84|    <div class="card"><b>Verifikasi</b><div id="alist"></div></div>
-    85|  </div>
-    86|</div>
-    87|
-    88|<!-- INFORMAN -->
-    89|<div id="informanPage" class="page">
-    90|  <div class="topbar">
-    91|    <div><h3>🔍 Informan</h3><span id="iname"></span></div>
-    92|    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="doLogout()">Keluar</button>
-    93|  </div>
-    94|  <div class="main">
-    95|    <button class="btn btn-orange" onclick="goPage('laporPage')">📸 Lapor PKL</button>
-    96|    <button class="btn btn-white" onclick="goPage('historiPage')">📋 Riwayat</button>
-    97|    <button class="btn btn-white" onclick="goPage('mapPage')">🗺️ Peta</button>
-    98|  </div>
-    99|</div>
-   100|
-   101|<!-- LAPOR -->
-   102|<div id="laporPage" class="page">
-   103|  <div class="topbar"><div><h3>📸 Lapor</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="goPage('informanPage')">← Batal</button></div>
-   104|  <div class="main">
-   105|    <div class="card">
-   106|      <label class="btn btn-white" style="text-align:center;display:block;cursor:pointer;">📷 Ambil Foto <input type="file" id="lfoto" accept="image/*" capture="environment" multiple onchange="previewL()" style="display:none;"></label>
-   107|      <div id="lprev" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
-   108|      <input id="ldesc" class="inp" placeholder="Deskripsi (nama, jualan apa)">
-   109|      <select id="lkat" class="inp"><option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option><option value="3">🥬 Sayur</option><option value="4">👗 Pakaian</option><option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option><option value="7">📍 Lainnya</option></select>
-   110|      <div id="lstat" style="text-align:center;color:#FF6B35;display:none;padding:8px;"></div>
-   111|      <button class="btn btn-orange" onclick="submitL()">🚀 Kirim</button>
-   112|    </div>
-   113|  </div>
-   114|</div>
-   115|
-   116|<!-- HISTORI -->
-   117|<div id="historiPage" class="page">
-   118|  <div class="topbar"><div><h3>📋 Riwayat</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="goPage('informanPage')">← Kembali</button></div>
-   119|  <div class="main" id="hlist"></div>
-   120|</div>
-   121|
-   122|<!-- PEDAGANG -->
-   123|<div id="pedagangPage" class="page">
-   124|  <div class="topbar">
-   125|    <div><h3>🛒 Pedagang</h3><span id="pname"></span></div>
-   126|    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="doLogout()">Keluar</button>
-   127|  </div>
-   128|  <div class="main">
-   129|    <button class="btn btn-orange" onclick="loadSekitar()">🔍 Laporan Sekitar</button>
-   130|    <button class="btn btn-white" onclick="goPage('daganganPage')">📦 Dagangan Saya</button>
-   131|    <button class="btn btn-white" onclick="goPage('mapPage')">🗺️ Peta</button>
-   132|  </div>
-   133|</div>
-   134|
-   135|<!-- SEKITAR -->
-   136|<div id="sekitarPage" class="page">
-   137|  <div class="topbar"><div><h3>🔍 Laporan Sekitar</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="goPage('pedagangPage')">← Kembali</button></div>
-   138|  <div class="main" id="slist"></div>
-   139|</div>
-   140|
-   141|<!-- DAGANGAN -->
-   142|<div id="daganganPage" class="page">
-   143|  <div class="topbar"><div><h3>📦 Dagangan</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="goPage('pedagangPage')">← Kembali</button></div>
-   144|  <div class="main">
-   145|    <button class="btn btn-orange" onclick="addProduk()">+ Tambah</button>
-   146|    <div id="dlist"></div>
-   147|  </div>
-   148|</div>
-   149|
-   150|<!-- MAP -->
-   151|<div id="mapPage" class="page">
-   152|  <div class="topbar"><div><h3>🗺️ Peta</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:white;" onclick="goBack()">← Kembali</button></div>
-   153|  <div class="main"><div id="mapContainer"></div></div>
-   154|</div>
-   155|
-   156|<script src="lib/supabase.min.js"></script>
-   157|<script src="lib/leaflet.js"></script>
-   158|<script>
-   159|// ===== INIT =====
-   160|var db, user, profile, myMap, markerLayer, prevPage;
-   161|
-   162|function init() {
-   163|  if (typeof supabase !== 'undefined') {
-   164|    db = supabase.createClient('https://dnpbyfpbbwkgsfwmzlva.supabase.co','sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay');
-   165|    checkSession();
-   166|  } else setTimeout(init, 500);
-   167|}
-   168|
-   169|async function checkSession() {
-   170|  try {
-   171|    var r = await db.auth.getSession();
-   172|    if (r.data.session) { user=r.data.session.user; var p=await db.from('profiles').select('*').eq('id',user.id).single(); if(p.data){profile=p.data;goPage(profile.role+'Page');} }
-   173|  } catch(e) {}
-   174|}
-   175|
-   176|function goPage(id) {
-   177|  prevPage = document.querySelector('.page.on') ? document.querySelector('.page.on').id : 'loginPage';
-   178|  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('on'); });
-   179|  var el = document.getElementById(id);
-   180|  if (!el) { alert('Page not found: '+id); return; }
-   181|  el.classList.add('on');
-   182|  if (id==='adminPage') { document.getElementById('aname').textContent=profile?profile.nama:''; loadAdmin(); }
-   183|  if (id==='informanPage') document.getElementById('iname').textContent=profile?profile.nama:'';
-   184|  if (id==='pedagangPage') document.getElementById('pname').textContent=profile?profile.nama:'';
-   185|  if (id==='historiPage') loadHistori();
-   186|  if (id==='daganganPage') loadDagangan();
-   187|  if (id==='mapPage') initMap();
-   188|}
-   189|
-   190|function goBack() {
-   191|  if (prevPage && document.getElementById(prevPage)) goPage(prevPage);
-   192|  else goPage(profile?profile.role+'Page':'loginPage');
-   193|}
-   194|
-   195|// ===== AUTH =====
-   196|async function doLogin() {
-   197|  if (!db) { alert('⏳ DB not ready'); return; }
-   198|  var e=document.getElementById('lemail').value.trim(), p=document.getElementById('lpass').value.trim();
-   199|  if (!e||!p) { alert('Isi email dan password'); return; }
-   200|  try {
-   201|    var r=await db.auth.signInWithPassword({email:e,password:p});
-   202|    if (r.error) { alert('Gagal: '+r.error.message); return; }
-   203|    user=r.data.user;
-   204|    var pr=await db.from('profiles').select('*').eq('id',user.id).single();
-   205|    if (!pr.data) { alert('Profile tidak ditemukan!'); return; }
-   206|    profile=pr.data;
-   207|    goPage(profile.role+'Page');
-   208|  } catch(err) { alert('ERROR: '+err.message); }
-   209|}
-   210|
-   211|async function doRegister() {
-   212|  var n=document.getElementById('rnama').value.trim(), e=document.getElementById('remail').value.trim();
-   213|  var p=document.getElementById('rpass').value.trim(), rl=document.getElementById('rrole').value;
-   214|  if (!n||!e||!p) { alert('Isi semua field'); return; }
-   215|  if (p.length<6) { alert('Password min 6'); return; }
-   216|  var r=await db.auth.signUp({email:e,password:p});
-   217|  if (r.error) { alert('Gagal: '+r.error.message); return; }
-   218|  await db.from('profiles').update({nama:n,role:rl}).eq('id',r.data.user.id);
-   219|  alert('✅ Registrasi berhasil!'); goPage('loginPage');
-   220|}
-   221|
-   222|async function doLogout() { await db.auth.signOut(); user=null;profile=null;goPage('loginPage'); }
-   223|
-   224|// ===== ADMIN =====
-   225|async function loadAdmin() {
-   226|  var l=await db.from('lokasi').select('id',{count:'exact',head:true});
-   227|  var u=await db.from('profiles').select('id',{count:'exact',head:true});
-   228|  document.getElementById('s1').textContent=l.count||0;
-   229|  document.getElementById('s2').textContent=u.count||0;
-   230|  
-   231|  var d=await db.from('lokasi').select('*').order('created_at',{ascending:false}).limit(20);
-   232|  var ids=[]; if(d.data) d.data.forEach(function(loc){ids.push(loc.user_id);});
-   233|  var nm={};
-   234|  if(ids.length>0){var np=await db.from('profiles').select('id,nama').in('id',ids); if(np.data) np.data.forEach(function(p){nm[p.id]=p.nama||'?';});}
-   235|  
-   236|  var h='';
-   237|  if(d.data&&d.data.length>0){
-   238|    d.data.forEach(function(loc){
-   239|      var b='<span class="badge badge-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
-   240|      var f='';
-   241|      if(loc.foto_url&&Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">';});
-   242|      h+='<div class="row"><div><b>'+(loc.deskripsi||'PKL')+'</b> '+nm[loc.user_id]+'<br>'+b+' '+f+'</div><div>';
-   243|      if(loc.status==='aktif') h+='<button class="btn-sm btn-green" onclick="verify('+loc.id+')">✅</button> ';
-   244|      if(loc.status==='aktif') h+='<button class="btn-sm btn-red" onclick="reject('+loc.id+')">❌</button> ';
-   245|      h+='<button class="btn-sm btn-red" onclick="del('+loc.id+')">🗑️</button></div></div>';
-   246|    });
-   247|  } else h='<p style="text-align:center;color:#888;">Belum ada data</p>';
-   248|  document.getElementById('alist').innerHTML=h;
-   249|}
-   250|async function verify(id){await db.from('lokasi').update({status:'diverifikasi'}).eq('id',id);var l=await db.from('lokasi').select('user_id').eq('id',id).single();if(l.data)await db.rpc('increment_poin',{uid:l.data.user_id,amount:10});loadAdmin();}
-   251|async function reject(id){await db.from('lokasi').update({status:'ditolak'}).eq('id',id);loadAdmin();}
-   252|async function del(id){if(confirm('Hapus?')){await db.from('lokasi').delete().eq('id',id);loadAdmin();}}
-   253|
-   254|// ===== INFORMAN =====
-   255|function previewL(){
-   256|  var pv=document.getElementById('lprev');pv.innerHTML='';
-   257|  var fs=document.getElementById('lfoto').files;
-   258|  for(var i=0;i<Math.min(fs.length||0,5);i++){(function(f){var fr=new FileReader();fr.onload=function(e){var img=document.createElement('img');img.src=e.target.result;img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px;';pv.appendChild(img);};fr.readAsDataURL(f);})(fs[i]);}
-   259|}
-   260|
-   261|async function submitL(){
-   262|  var desc=document.getElementById('ldesc').value.trim();
-   263|  var kat=document.getElementById('lkat').value;
-   264|  var fs=document.getElementById('lfoto').files;
-   265|  var st=document.getElementById('lstat');st.style.display='block';
-   266|  
-   267|  if(!navigator.geolocation){alert('GPS tidak didukung');goPage('informanPage');return;}
-   268|  st.textContent='📡 Ambil lokasi...';
-   269|  navigator.geolocation.getCurrentPosition(async function(pos){
-   270|    st.textContent='📤 Upload...';
-   271|    var urls=[];var errs=[];
-   272|    if(fs&&fs.length>0){
-   273|      for(var i=0;i<Math.min(fs.length,5);i++){
-   274|        var f=fs[i];var fn=user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
-   275|        var up=await db.storage.from('pkl-photos').upload(fn,f,{contentType:f.type,upsert:false});
-   276|        if(up.error) errs.push(up.error.message);
-   277|        else{var u=db.storage.from('pkl-photos').getPublicUrl(fn);if(u.data&&u.data.publicUrl) urls.push(u.data.publicUrl);}
-   278|      }
-   279|    }
-   280|    var ld={user_id:user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,deskripsi:desc||'PKL',kategori_id:parseInt(kat),status:'aktif'};
-   281|    if(urls.length>0)ld.foto_url=urls;
-   282|    var r=await db.from('lokasi').insert(ld);
-   283|    st.style.display='none';
-   284|    var msg='✅ Laporan terkirim!';
-   285|    if(urls.length>0)msg+='\n📸 '+urls.length+' foto';
-   286|    if(errs.length>0)msg+='\n❌ '+errs[0];
-   287|    msg+='\n+5 poin';alert(msg);
-   288|    await db.rpc('increment_poin',{uid:user.id,amount:5});
-   289|    document.getElementById('ldesc').value='';document.getElementById('lkat').value='7';
-   290|    document.getElementById('lfoto').value='';document.getElementById('lprev').innerHTML='';
-   291|    goPage('informanPage');
-   292|  },function(err){st.style.display='none';alert('❌ '+err.message);goPage('informanPage');},{enableHighAccuracy:true});
-   293|}
-   294|
-   295|async function loadHistori(){
-   296|  var d=await db.from('lokasi').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-   297|  var h='';
-   298|  if(d.data&&d.data.length>0){
-   299|    d.data.forEach(function(loc){
-   300|      var b='<span class="badge badge-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
-   301|      var f='';
-   302|      if(loc.foto_url&&Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">';});
-   303|      h+='<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b> '+b+'<br><small>'+new Date(loc.created_at).toLocaleString('id-ID')+'</small><br>'+f+'</div>';
-   304|    });
-   305|  } else h='<p style="text-align:center;color:#888;">Belum ada laporan</p>';
-   306|  document.getElementById('hlist').innerHTML=h;
-   307|}
-   308|
-   309|// ===== PEDAGANG =====
-   310|async function loadSekitar(){
-   311|  goPage('sekitarPage');
-   312|  document.getElementById('slist').innerHTML='<p style="text-align:center;color:#888;">Memuat...</p>';
-   313|  
-   314|  var d=await db.from('lokasi').select('*').eq('status','diverifikasi').order('created_at',{ascending:false}).limit(20);
-   315|  var ids=[];if(d.data)d.data.forEach(function(loc){ids.push(loc.user_id);});
-   316|  var nm={};
-   317|  if(ids.length>0){var np=await db.from('profiles').select('id,nama').in('id',ids);if(np.data)np.data.forEach(function(p){nm[p.id]=p.nama||'?';});}
-   318|  
-   319|  var h='';
-   320|  if(d.data&&d.data.length>0){
-   321|    d.data.forEach(function(loc){
-   322|      var f='';
-   323|      if(loc.foto_url&&Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">';});
-   324|      h+='<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b><br><small>👤 '+(nm[loc.user_id]||'?')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small><br>'+f;
-   325|      h+='<br><button class="btn-sm btn-green" onclick="beriPoin(\\\''+loc.user_id+'\\\',\\\''+(nm[loc.user_id]||'?')+'\\\')">⭐ Poin</button> ';
-   326|      h+='<button class="btn-sm btn-orange" onclick="openMap('+loc.latitude+','+loc.longitude+')">🗺️ Maps</button></div>';
-   327|    });
-   328|  } else h='<p style="text-align:center;color:#888;">Belum ada laporan diverifikasi</p>';
-   329|  document.getElementById('slist').innerHTML=h;
-   330|}
-   331|
-   332|function beriPoin(uid,nama){
-   333|  var j=prompt('Poin untuk '+(nama||'?')+'? (10-50)');
-   334|  if(!j||isNaN(j)||parseInt(j)<1)return;
-   335|  db.rpc('increment_poin',{uid:uid,amount:parseInt(j)}).then(function(){alert('✅ '+j+' poin diberikan!');});
-   336|}
-   337|
-   338|async function loadDagangan(){
-   339|  var d=await db.from('produk').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-   340|  var h='';
-   341|  if(d.data&&d.data.length>0){
-   342|    d.data.forEach(function(p){h+='<div class="card"><b>📦 '+p.nama_produk+'</b> <span style="color:#FF6B35;">'+(p.harga||'')+'</span><br><button class="btn-sm btn-red" onclick="delProduk('+p.id+')">🗑️</button></div>';});
-   343|  } else h='<p style="text-align:center;color:#888;">Belum ada produk</p>';
-   344|  document.getElementById('dlist').innerHTML=h;
-   345|}
-   346|function addProduk(){
-   347|  var n=prompt('Nama produk:');if(!n)return;
-   348|  var h=prompt('Harga:');db.from('produk').insert({user_id:user.id,nama_produk:n,harga:h||''}).then(function(r){if(r.error)alert(r.error.message);else{alert('✅ Ditambah!');loadDagangan();}});
-   349|}
-   350|async function delProduk(id){if(confirm('Hapus?')){await db.from('produk').delete().eq('id',id);loadDagangan();}}
-   351|
-   352|// ===== MAP =====
-   353|function initMap(){
-   354|  setTimeout(function(){
-   355|    var c=document.getElementById('mapContainer');
-   356|    if(myMap){myMap.invalidateSize();loadMarkers();return;}
-   357|    L.Icon.Default.imagePath='lib/images/';
-   358|    myMap=L.map('mapContainer').setView([-6.2,106.8],13);
-   359|    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(myMap);
-   360|    markerLayer=L.layerGroup().addTo(myMap);loadMarkers();
-   361|  },300);
-   362|}
-   363|async function loadMarkers(){
-   364|  if(!myMap||!markerLayer)return;markerLayer.clearLayers();
-   365|  var d=await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false});
-   366|  if(d.data&&d.data.length>0){
-   367|    var b=[];
-   368|    d.data.forEach(function(loc){
-   369|      var pc='<b>📍 '+(loc.deskripsi||'PKL')+'</b><br>'+new Date(loc.created_at).toLocaleDateString('id-ID');
-   370|      if(loc.foto_url&&Array.isArray(loc.foto_url)&&loc.foto_url.length>0)pc+='<br><img src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px;">';
-   371|      L.marker([loc.latitude,loc.longitude]).addTo(markerLayer).bindPopup(pc);b.push([loc.latitude,loc.longitude]);
-   372|    });
-   373|    myMap.fitBounds(b,{padding:[30,30]});
-   374|  }
-   375|}
-   376|
-   377|// ===== HELPERS =====
-   378|function openMap(lat,lng){var u='https://www.google.com/maps?q='+lat+','+lng;try{window.open(u,'_system');}catch(e){location.href=u;}}
-   379|function openUrl(u){try{window.open(u,'_system');}catch(e){location.href=u;}}
-   380|
-   381|document.addEventListener('DOMContentLoaded',init);
-   382|</script>
-   383|</body>
-   384|</html>
-   385|
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lokasi Sekitar</title>
+  <link rel="stylesheet" href="lib/leaflet.css" />
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;background:#f5f5f5}
+    .pg{display:none}
+    #loginPg{display:block}
+    .box{background:white;padding:24px;border-radius:16px;width:90%;max-width:350px;margin:40px auto;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+    .box h2{text-align:center;color:#FF6B35;margin-bottom:14px}
+    .inp{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:10px}
+    .btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:6px}
+    .btn-o{background:#FF6B35;color:#fff}.btn-w{background:#fff;color:#333;border:1px solid #ddd}
+    .btn-g{background:#28a745;color:#fff}.btn-r{background:#dc3545;color:#fff}
+    .btn-sm{padding:5px 10px;font-size:11px;border-radius:5px;cursor:pointer;border:none;margin:2px}
+    .link{text-align:center;color:#FF6B35;font-size:13px;cursor:pointer;display:block;margin-top:8px}
+    .hdr{background:linear-gradient(135deg,#FF6B35,#F7931E);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+    .hdr h3{font-size:15px}.hdr s{font-size:10px;opacity:0.8}
+    .main{padding:12px;max-width:600px;margin:0 auto}
+    .card{background:#fff;border-radius:10px;padding:12px;box-shadow:0 1px 6px rgba(0,0,0,0.05);margin-bottom:8px}
+    .row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eee;font-size:12px;gap:6px}
+    .badge{padding:2px 6px;border-radius:6px;font-size:9px;font-weight:600}
+    .bg-y{background:#fff3cd;color:#856404}.bg-g{background:#d4edda;color:#155724}.bg-r{background:#f8d7da;color:#721C24}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+    .stat{background:#fff;border-radius:8px;padding:10px;text-align:center}
+    .stat b{font-size:18px;color:#FF6B35;display:block}.stat s{font-size:9px;color:#888}
+    .thumb{width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer}
+    #mapDiv{height:350px}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN (always shown first) -->
+<div id="loginPg" class="pg">
+  <div class="box">
+    <h2>📍 Lokasi Sekitar</h2>
+    <input id="lemail" class="inp" type="email" placeholder="Email">
+    <input id="lpass" class="inp" type="password" placeholder="Password">
+    <button class="btn btn-o" onclick="doLogin()">Masuk</button>
+    <span class="link" onclick="showPg('regPg')">Daftar akun baru</span>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="regPg" class="pg">
+  <div class="box">
+    <h2>📝 Daftar</h2>
+    <input id="rnama" class="inp" placeholder="Nama">
+    <input id="remail" class="inp" type="email" placeholder="Email">
+    <input id="rpass" class="inp" type="password" placeholder="Password (min 6)">
+    <select id="rrole" class="inp"><option value="informan">🔍 Informan</option><option value="pedagang">🛒 Pedagang</option></select>
+    <button class="btn btn-o" onclick="doRegister()">Daftar</button>
+    <span class="link" onclick="showPg('loginPg')">Sudah punya akun? Masuk</span>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminPg" class="pg">
+  <div class="hdr"><div><h3>🛡️ Admin</h3><s id="aname"></s></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="doLogout()">Keluar</button></div>
+  <div class="main">
+    <div class="stats"><div class="stat"><b id="s1">-</b><s>Lokasi</s></div><div class="stat"><b id="s2">-</b><s>User</s></div></div>
+    <div class="card"><b>Verifikasi</b><div id="alist"></div></div>
+  </div>
+</div>
+
+<!-- INFORMAN -->
+<div id="infPg" class="pg">
+  <div class="hdr"><div><h3>🔍 Informan</h3><s id="iname"></s></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="doLogout()">Keluar</button></div>
+  <div class="main">
+    <button class="btn btn-o" onclick="showPg('laporPg')">📸 Lapor PKL</button>
+    <button class="btn btn-w" onclick="showPg('histPg')">📋 Riwayat</button>
+    <button class="btn btn-w" onclick="showPg('mapPg')">🗺️ Peta</button>
+  </div>
+</div>
+
+<!-- LAPOR -->
+<div id="laporPg" class="pg">
+  <div class="hdr"><div><h3>📸 Lapor</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('infPg')">← Batal</button></div>
+  <div class="main"><div class="card">
+    <label style="display:block;text-align:center;padding:10px;background:#f0f0f0;border-radius:8px;cursor:pointer;margin-bottom:8px">📷 Ambil Foto <input type="file" id="lfoto" accept="image/*" capture="environment" multiple onchange="prevL()" style="display:none"></label>
+    <div id="lprev" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px"></div>
+    <input id="ldesc" class="inp" placeholder="Deskripsi (nama, jualan apa)">
+    <select id="lkat" class="inp"><option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option><option value="3">🥬 Sayur</option><option value="4">👗 Pakaian</option><option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option><option value="7">📍 Lainnya</option></select>
+    <div id="lstat" style="text-align:center;color:#FF6B35;display:none;padding:6px"></div>
+    <button class="btn btn-o" onclick="submitL()">🚀 Kirim</button>
+  </div></div>
+</div>
+
+<!-- HISTORI -->
+<div id="histPg" class="pg">
+  <div class="hdr"><div><h3>📋 Riwayat</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('infPg')">← Kembali</button></div>
+  <div class="main" id="hlist"></div>
+</div>
+
+<!-- PEDAGANG -->
+<div id="pedPg" class="pg">
+  <div class="hdr"><div><h3>🛒 Pedagang</h3><s id="pname"></s></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="doLogout()">Keluar</button></div>
+  <div class="main">
+    <button class="btn btn-o" onclick="loadSekitar()">🔍 Laporan Sekitar</button>
+    <button class="btn btn-w" onclick="showPg('dagPg')">📦 Dagangan Saya</button>
+    <button class="btn btn-w" onclick="showPg('mapPg')">🗺️ Peta</button>
+  </div>
+</div>
+
+<!-- SEKITAR -->
+<div id="sekPg" class="pg">
+  <div class="hdr"><div><h3>🔍 Laporan Sekitar</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('pedPg')">← Kembali</button></div>
+  <div class="main" id="slist"></div>
+</div>
+
+<!-- DAGANGAN -->
+<div id="dagPg" class="pg">
+  <div class="hdr"><div><h3>📦 Dagangan</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPg('pedPg')">← Kembali</button></div>
+  <div class="main">
+    <button class="btn btn-o" onclick="addProduk()">+ Tambah</button>
+    <div id="dlist"></div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="mapPg" class="pg">
+  <div class="hdr"><div><h3>🗺️ Peta</h3></div><button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="goBack()">←</button></div>
+  <div class="main"><div id="mapDiv"></div></div>
+</div>
+
+<script src="lib/supabase.min.js"></script>
+<script src="lib/leaflet.js"></script>
+<script>
+var db, user, profile, myMap, markerLayer, prevPg;
+var SUPABASE_URL='https://dnpbyfpbbwkgsfwmzlva.supabase.co';
+var SUPABASE_KEY='sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
+
+function init(){
+  if(typeof supabase!=='undefined'){db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);checkSession()}
+  else setTimeout(init,500)
+}
+async function checkSession(){
+  try{var r=await db.auth.getSession();if(r.data.session){user=r.data.session.user;var p=await db.from('profiles').select('*').eq('id',user.id).single();if(p.data){profile=p.data;showPg(profile.role+'Pg')}}}
+  catch(e){}
+}
+function showPg(id){
+  prevPg=document.querySelector('.pg:not([style*="display:none"])');if(prevPg)prevPg=prevPg.id;else prevPg='loginPg';
+  document.querySelectorAll('.pg').forEach(function(p){p.style.display='none'});
+  var el=document.getElementById(id);if(!el)return;el.style.display='block';
+  if(id==='adminPg'){document.getElementById('aname').textContent=profile?profile.nama:'';loadAdmin()}
+  if(id==='infPg')document.getElementById('iname').textContent=profile?profile.nama:''
+  if(id==='pedPg')document.getElementById('pname').textContent=profile?profile.nama:''
+  if(id==='histPg')loadHist()
+  if(id==='dagPg')loadDag()
+  if(id==='mapPg')initMap()
+}
+function goBack(){if(prevPg&&document.getElementById(prevPg))showPg(prevPg);else showPg(profile?profile.role+'Pg':'loginPg')}
+
+// AUTH
+async function doLogin(){
+  if(!db)return;var e=document.getElementById('lemail').value.trim(),p=document.getElementById('lpass').value.trim();
+  if(!e||!p){alert('Isi email dan password');return}
+  try{var r=await db.auth.signInWithPassword({email:e,password:p});if(r.error){alert('Gagal: '+r.error.message);return}
+  user=r.data.user;var pr=await db.from('profiles').select('*').eq('id',user.id).single();if(!pr.data){alert('Profile tidak ditemukan');return}
+  profile=pr.data;showPg(profile.role+'Pg')}catch(err){alert('Error: '+err.message)}
+}
+async function doRegister(){
+  var n=document.getElementById('rnama').value.trim(),e=document.getElementById('remail').value.trim(),p=document.getElementById('rpass').value.trim(),rl=document.getElementById('rrole').value;
+  if(!n||!e||!p){alert('Isi semua field');return}if(p.length<6){alert('Password min 6');return}
+  var r=await db.auth.signUp({email:e,password:p});if(r.error){alert('Gagal: '+r.error.message);return}
+  await db.from('profiles').update({nama:n,role:rl}).eq('id',r.data.user.id);alert('✅ Registrasi berhasil!');showPg('loginPg')
+}
+async function doLogout(){await db.auth.signOut();user=null;profile=null;showPg('loginPg')}
+
+// ADMIN
+async function loadAdmin(){
+  var l=await db.from('lokasi').select('id',{count:'exact',head:true}),u=await db.from('profiles').select('id',{count:'exact',head:true});
+  document.getElementById('s1').textContent=l.count||0;document.getElementById('s2').textContent=u.count||0;
+  var d=await db.from('lokasi').select('*').order('created_at',{ascending:false}).limit(20);
+  var ids=[];if(d.data)d.data.forEach(function(loc){ids.push(loc.user_id)});
+  var nm={};if(ids.length>0){var np=await db.from('profiles').select('id,nama').in('id',ids);if(np.data)np.data.forEach(function(p){nm[p.id]=p.nama||'?'})}
+  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(loc){
+    var b='<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
+    var f='';if(loc.foto_url&&Array.isArray(loc.foto_url))loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">'});
+    h+='<div class="row"><div><b>'+(loc.deskripsi||'PKL')+'</b> '+nm[loc.user_id]+'<br>'+b+' '+f+'</div><div>';
+    if(loc.status==='aktif')h+='<button class="btn-sm btn-g" onclick="verify('+loc.id+')">✅</button> ';
+    if(loc.status==='aktif')h+='<button class="btn-sm btn-r" onclick="reject('+loc.id+')">❌</button> ';
+    h+='<button class="btn-sm btn-r" onclick="del('+loc.id+')">🗑️</button></div></div>';
+  })}else h='<p style="text-align:center;color:#888;padding:20px;">Belum ada data</p>';
+  document.getElementById('alist').innerHTML=h
+}
+async function verify(id){await db.from('lokasi').update({status:'diverifikasi'}).eq('id',id);var l=await db.from('lokasi').select('user_id').eq('id',id).single();if(l.data)await db.rpc('increment_poin',{uid:l.data.user_id,amount:10});loadAdmin()}
+async function reject(id){await db.from('lokasi').update({status:'ditolak'}).eq('id',id);loadAdmin()}
+async function del(id){if(confirm('Hapus?')){await db.from('lokasi').delete().eq('id',id);loadAdmin()}}
+
+// INFORMAN
+function prevL(){var pv=document.getElementById('lprev');pv.innerHTML='';var fs=document.getElementById('lfoto').files;for(var i=0;i<Math.min(fs.length||0,5);i++){(function(f){var fr=new FileReader();fr.onload=function(e){var img=document.createElement('img');img.src=e.target.result;img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px';pv.appendChild(img)};fr.readAsDataURL(f)})(fs[i])}}
+async function submitL(){
+  var desc=document.getElementById('ldesc').value.trim(),kat=document.getElementById('lkat').value,fs=document.getElementById('lfoto').files,st=document.getElementById('lstat');
+  st.style.display='block';if(!navigator.geolocation){alert('GPS tidak didukung');showPg('infPg');return}
+  st.textContent='📡 Ambil lokasi...';
+  navigator.geolocation.getCurrentPosition(async function(pos){
+    st.textContent='📤 Upload...';var urls=[],errs=[];
+    if(fs&&fs.length>0){for(var i=0;i<Math.min(fs.length,5);i++){
+      var f=fs[i],fn=user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
+      var up=await db.storage.from('pkl-photos').upload(fn,f,{contentType:f.type,upsert:false});
+      if(up.error)errs.push(up.error.message);else{var u=db.storage.from('pkl-photos').getPublicUrl(fn);if(u.data&&u.data.publicUrl)urls.push(u.data.publicUrl)}
+    }}
+    var ld={user_id:user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,deskripsi:desc||'PKL',kategori_id:parseInt(kat),status:'aktif'};
+    if(urls.length>0)ld.foto_url=urls;
+    var r=await db.from('lokasi').insert(ld);st.style.display='none';
+    var msg='✅ Laporan terkirim!';if(urls.length>0)msg+='\n📸 '+urls.length+' foto';if(errs.length>0)msg+='\n❌ '+errs[0];msg+='\n+5 poin';alert(msg);
+    await db.rpc('increment_poin',{uid:user.id,amount:5});
+    document.getElementById('ldesc').value='';document.getElementById('lkat').value='7';document.getElementById('lfoto').value='';document.getElementById('lprev').innerHTML='';
+    showPg('infPg')
+  },function(err){st.style.display='none';alert('❌ '+err.message);showPg('infPg')},{enableHighAccuracy:true})
+}
+async function loadHist(){
+  var d=await db.from('lokasi').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(loc){
+    var b='<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
+    var f='';if(loc.foto_url&&Array.isArray(loc.foto_url))loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">'});
+    h+='<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b> '+b+'<br><small>'+new Date(loc.created_at).toLocaleString('id-ID')+'</small><br>'+f+'</div>';
+  })}else h='<p style="text-align:center;color:#888;padding:20px;">Belum ada laporan</p>';
+  document.getElementById('hlist').innerHTML=h
+}
+
+// PEDAGANG
+async function loadSekitar(){
+  showPg('sekPg');document.getElementById('slist').innerHTML='<p style="text-align:center;color:#888;">Memuat...</p>';
+  var d=await db.from('lokasi').select('*').eq('status','diverifikasi').order('created_at',{ascending:false}).limit(20);
+  var ids=[];if(d.data)d.data.forEach(function(loc){ids.push(loc.user_id)});
+  var nm={};if(ids.length>0){var np=await db.from('profiles').select('id,nama').in('id',ids);if(np.data)np.data.forEach(function(p){nm[p.id]=p.nama||'?'})}
+  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(loc){
+    var f='';if(loc.foto_url&&Array.isArray(loc.foto_url))loc.foto_url.forEach(function(u){f+='<img src="'+u+'" class="thumb" onclick="openUrl(\\\''+u+'\\\')">'});
+    h+='<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b><br><small>👤 '+(nm[loc.user_id]||'?')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small><br>'+f;
+    h+='<br><button class="btn-sm btn-g" onclick="beriPoin(\\\''+loc.user_id+'\\\',\\\''+(nm[loc.user_id]||'?')+'\\\')">⭐ Poin</button> ';
+    h+='<button class="btn-sm btn-o" onclick="openMap('+loc.latitude+','+loc.longitude+')">🗺️ Maps</button></div>';
+  })}else h='<p style="text-align:center;color:#888;">Belum ada laporan diverifikasi</p>';
+  document.getElementById('slist').innerHTML=h
+}
+function beriPoin(uid,nama){var j=prompt('Poin untuk '+(nama||'?')+'? (10-50)');if(!j||isNaN(j)||parseInt(j)<1)return;db.rpc('increment_poin',{uid:uid,amount:parseInt(j)}).then(function(){alert('✅ Poin diberikan!')})}
+async function loadDag(){
+  var d=await db.from('produk').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  var h='';if(d.data&&d.data.length>0){d.data.forEach(function(p){h+='<div class="card"><b>📦 '+p.nama_produk+'</b> <span style="color:#FF6B35">'+(p.harga||'')+'</span><br><button class="btn-sm btn-r" onclick="delProduk('+p.id+')">🗑️</button></div>'})}else h='<p style="text-align:center;color:#888;">Belum ada produk</p>';
+  document.getElementById('dlist').innerHTML=h
+}
+function addProduk(){var n=prompt('Nama produk:');if(!n)return;var h=prompt('Harga:');db.from('produk').insert({user_id:user.id,nama_produk:n,harga:h||''}).then(function(r){if(r.error)alert(r.error.message);else{alert('✅ Ditambah!');loadDag()}})}
+async function delProduk(id){if(confirm('Hapus?')){await db.from('produk').delete().eq('id',id);loadDag()}}
+
+// MAP
+function initMap(){setTimeout(function(){var c=document.getElementById('mapDiv');if(myMap){myMap.invalidateSize();loadMarkers();return}L.Icon.Default.imagePath='lib/images/';myMap=L.map('mapDiv').setView([-6.2,106.8],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(myMap);markerLayer=L.layerGroup().addTo(myMap);loadMarkers()},300)}
+async function loadMarkers(){if(!myMap||!markerLayer)return;markerLayer.clearLayers();var d=await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false});if(d.data&&d.data.length>0){var b=[];d.data.forEach(function(loc){var pc='<b>📍 '+(loc.deskripsi||'PKL')+'</b><br>'+new Date(loc.created_at).toLocaleDateString('id-ID');if(loc.foto_url&&Array.isArray(loc.foto_url)&&loc.foto_url.length>0)pc+='<br><img src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px">';L.marker([loc.latitude,loc.longitude]).addTo(markerLayer).bindPopup(pc);b.push([loc.latitude,loc.longitude])});myMap.fitBounds(b,{padding:[30,30]})}}
+
+// HELPERS
+function openMap(lat,lng){var u='https://www.google.com/maps?q='+lat+','+lng;try{window.open(u,'_system')}catch(e){location.href=u}}
+function openUrl(u){try{window.open(u,'_system')}catch(e){location.href=u}}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
