@@ -10,173 +10,203 @@
     body { font-family: sans-serif; background:#f5f5f5; min-height:100vh; }
     .screen { display:none; min-height:100vh; flex-direction:column; }
     .screen.active { display:flex; }
-    .header { background:linear-gradient(135deg,#FF6B35,#F7931E); color:white; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
-    .header h1 { font-size:16px; }
-    .header-sub { font-size:11px; opacity:0.8; }
-    .btn-sm { padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; border:none; }
-    .btn-outline { background:rgba(255,255,255,0.2); color:white; }
-    .btn-orange { background:#FF6B35; color:white; }
-    .btn-white { background:white; color:#333; border:1px solid #ddd; }
-    .btn-red { background:#dc3545; color:white; }
-    .btn-green { background:#28a745; color:white; }
-    .content { flex:1; padding:16px; max-width:600px; width:100%; margin:0 auto; overflow-y:auto; }
-    .card { background:white; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:12px; }
-    .form-group { margin-bottom:10px; }
-    .form-group label { display:block; font-size:13px; color:#666; margin-bottom:4px; font-weight:600; }
-    .form-group input, .form-group select, .form-group textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
-    textarea { resize:vertical; min-height:80px; }
-    .btn-big { width:100%; padding:14px; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; margin-bottom:8px; }
-    .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
-    .stat { background:white; border-radius:10px; padding:14px; text-align:center; }
-    .stat-num { font-size:22px; font-weight:700; color:#FF6B35; }
+    .hdr { background:linear-gradient(135deg,#FF6B35,#F7931E); color:white; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
+    .hdr h1 { font-size:15px; }
+    .hdr-sub { font-size:10px; opacity:0.8; }
+    .btn-sm { padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; border:none; }
+    .btn-out { background:rgba(255,255,255,0.2); color:white; }
+    .btn-o { background:#FF6B35; color:white; }
+    .btn-w { background:white; color:#333; border:1px solid #ddd; }
+    .btn-g { background:#28a745; color:white; }
+    .btn-r { background:#dc3545; color:white; }
+    .btn-y { background:#ffc107; color:#333; }
+    .cont { flex:1; padding:12px; max-width:600px; width:100%; margin:0 auto; overflow-y:auto; }
+    .card { background:white; border-radius:10px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.05); margin-bottom:10px; }
+    .fg { margin-bottom:10px; }
+    .fg label { display:block; font-size:12px; color:#666; margin-bottom:3px; font-weight:600; }
+    .fg input, .fg select, .fg textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:13px; }
+    textarea { resize:vertical; min-height:70px; }
+    .btn-big { width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; margin-bottom:8px; }
+    .stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+    .stat { background:white; border-radius:8px; padding:12px; text-align:center; }
+    .stat-num { font-size:20px; font-weight:700; color:#FF6B35; }
     .stat-lbl { font-size:10px; color:#888; }
-    .link { text-align:center; margin-top:10px; font-size:13px; color:#FF6B35; cursor:pointer; }
-    .status { text-align:center; padding:8px; font-size:13px; color:#666; }
-    .table-row { display:flex; justify-content:space-between; align-items:flex-start; padding:10px 0; border-bottom:1px solid #eee; font-size:13px; gap:8px; }
-    .badge { padding:2px 8px; border-radius:8px; font-size:10px; font-weight:600; }
-    .badge-aktif { background:#fff3cd; color:#856404; }
-    .badge-diverifikasi { background:#d4edda; color:#155724; }
-    .badge-ditolak { background:#f8d7da; color:#721C24; }
-    #map { height:300px; border-radius:10px; }
-    .map-full { flex:1; width:100%; min-height:300px; }
-    .toolbar { display:flex; gap:6px; padding:8px; background:white; border-bottom:1px solid #eee; flex-wrap:wrap; }
-    .foto-grid { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
-    .foto-grid img { width:70px; height:70px; object-fit:cover; border-radius:8px; }
-    .upload-label { display:inline-block; padding:10px 20px; background:#f0f0f0; border-radius:8px; cursor:pointer; font-size:13px; }
-    .upload-label input { display:none; }
+    .link { text-align:center; margin-top:8px; font-size:12px; color:#FF6B35; cursor:pointer; }
+    .badge { padding:2px 6px; border-radius:6px; font-size:9px; font-weight:600; }
+    .bg-y { background:#fff3cd; color:#856404; }
+    .bg-g { background:#d4edda; color:#155724; }
+    .bg-r { background:#f8d7da; color:#721C24; }
+    .row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid #eee; font-size:12px; gap:8px; }
+    .map-wrap { flex:1; min-height:300px; }
+    .tb { display:flex; gap:4px; padding:6px; background:white; border-bottom:1px solid #eee; }
+    .foto-thumb { width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer; }
+    .up-btn { display:inline-block; padding:8px 16px; background:#f0f0f0; border-radius:6px; cursor:pointer; font-size:12px; }
+    .up-btn input { display:none; }
+    .pts { background:#FF6B35; color:white; border-radius:20px; padding:4px 12px; font-size:13px; font-weight:700; display:inline-block; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- ====== LOGIN ====== -->
 <div id="login" class="screen active">
-  <div class="content" style="justify-content:center;">
+  <div class="cont" style="justify-content:center;">
     <div class="card">
       <h2 style="text-align:center;color:#FF6B35;">📍 Lokasi Sekitar</h2>
-      <p style="text-align:center;color:#888;font-size:10px;">v3.2 — Foto Edition</p>
-      <div class="form-group"><input id="loginEmail" type="email" placeholder="Email"></div>
-      <div class="form-group"><input id="loginPassword" type="password" placeholder="Password"></div>
-      <button class="btn-big btn-orange" onclick="doLogin()">Masuk</button>
+      <p style="text-align:center;color:#888;font-size:10px;">v4.0 — Full Business</p>
+      <div class="fg"><input id="loginEmail" type="email" placeholder="Email"></div>
+      <div class="fg"><input id="loginPassword" type="password" placeholder="Password"></div>
+      <button class="btn-big btn-o" onclick="doLogin()">Masuk</button>
       <div class="link" onclick="goTo('register')">Belum punya akun? Daftar</div>
     </div>
   </div>
 </div>
 
-<!-- REGISTER -->
+<!-- ====== REGISTER ====== -->
 <div id="register" class="screen">
-  <div class="content" style="justify-content:center;">
+  <div class="cont" style="justify-content:center;">
     <div class="card">
       <h2 style="text-align:center;color:#FF6B35;">📝 Daftar</h2>
-      <div class="form-group"><input id="regNama" type="text" placeholder="Nama lengkap"></div>
-      <div class="form-group"><input id="regEmail" type="email" placeholder="Email"></div>
-      <div class="form-group"><input id="regPassword" type="password" placeholder="Password (min 6)"></div>
-      <div class="form-group">
-        <select id="regRole"><option value="informan">🔍 Informan</option><option value="pedagang">🛒 Pedagang</option></select>
+      <div class="fg"><input id="regNama" type="text" placeholder="Nama lengkap"></div>
+      <div class="fg"><input id="regEmail" type="email" placeholder="Email"></div>
+      <div class="fg"><input id="regPassword" type="password" placeholder="Password (min 6)"></div>
+      <div class="fg">
+        <select id="regRole"><option value="informan">🔍 Informan (pelapor)</option><option value="pedagang">🛒 Pedagang</option></select>
       </div>
-      <button class="btn-big btn-orange" onclick="doRegister()">Daftar</button>
+      <button class="btn-big btn-o" onclick="doRegister()">Daftar</button>
       <div class="link" onclick="goTo('login')">Sudah punya akun? Masuk</div>
     </div>
   </div>
 </div>
 
-<!-- ADMIN -->
+<!-- ====== ADMIN ====== -->
 <div id="admin" class="screen">
-  <div class="header">
-    <div><h1>🛡️ Admin</h1><div class="header-sub" id="adminUser"></div></div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn-sm btn-outline" onclick="goTo('map')">🗺️</button>
-      <button class="btn-sm btn-outline" onclick="doLogout()">Keluar</button>
+  <div class="hdr">
+    <div><h1>🛡️ Admin</h1><div class="hdr-sub" id="adminUser"></div></div>
+    <div style="display:flex;gap:4px;">
+      <button class="btn-sm btn-out" onclick="goTo('mapView')">🗺️</button>
+      <button class="btn-sm btn-out" onclick="doLogout()">Keluar</button>
     </div>
   </div>
-  <div class="content">
+  <div class="cont">
     <div class="stats">
       <div class="stat"><div class="stat-num" id="sLokasi">-</div><div class="stat-lbl">Total</div></div>
       <div class="stat"><div class="stat-num" id="sAktif">-</div><div class="stat-lbl">Aktif</div></div>
       <div class="stat"><div class="stat-num" id="sUser">-</div><div class="stat-lbl">User</div></div>
       <div class="stat"><div class="stat-num" id="sPending">-</div><div class="stat-lbl">Pending</div></div>
     </div>
-    <div class="card"><h3 style="font-size:14px;margin-bottom:8px;">📋 Semua Lokasi</h3><div id="adminTable"></div></div>
+    <div class="card"><h3 style="font-size:13px;margin-bottom:6px;">📋 Verifikasi</h3><div id="adminTable"></div></div>
   </div>
 </div>
 
-<!-- INFORMAN -->
+<!-- ====== INFORMAN ====== -->
 <div id="informan" class="screen">
-  <div class="header">
-    <div><h1>🔍 Informan</h1><div class="header-sub" id="informanUser"></div></div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn-sm btn-outline" onclick="goTo('map')">🗺️</button>
-      <button class="btn-sm btn-outline" onclick="doLogout()">Keluar</button>
+  <div class="hdr">
+    <div><h1>🔍 Informan</h1><div class="hdr-sub" id="informanUser"></div></div>
+    <div style="display:flex;gap:4px;">
+      <span class="pts" id="informanPoin">0 ⭐</span>
+      <button class="btn-sm btn-out" onclick="goTo('mapView')">🗺️</button>
+      <button class="btn-sm btn-out" onclick="doLogout()">Keluar</button>
     </div>
   </div>
-  <div class="content">
-    <button class="btn-big btn-orange" onclick="showLaporForm('cepat')">📍 Lapor Cepat (tanpa foto)</button>
-    <button class="btn-big btn-orange" onclick="showLaporForm('detail')" style="background:#F7931E;">📸 Lapor Detail + Foto</button>
-    <button class="btn-big btn-white" onclick="goTo('map')">🗺️ Lihat Peta</button>
+  <div class="cont">
+    <button class="btn-big btn-o" onclick="goTo('laporForm')">📸 Lapor PKL (Kamera)</button>
+    <button class="btn-big btn-w" onclick="goTo('histori')">📋 Riwayat Laporan</button>
+    <button class="btn-big btn-w" onclick="goTo('mapView')">🗺️ Peta PKL</button>
   </div>
 </div>
 
-<!-- LAPOR FORM -->
-<div id="lapor" class="screen">
-  <div class="header">
-    <div><h1 id="laporMode">📸 Laporan</h1></div>
-    <div><button class="btn-sm btn-outline" onclick="goTo('informan')">← Batal</button></div>
+<!-- ====== LAPOR FORM ====== -->
+<div id="laporForm" class="screen">
+  <div class="hdr">
+    <div><h1>📸 Lapor PKL</h1></div>
+    <button class="btn-sm btn-out" onclick="goTo('informan')">← Batal</button>
   </div>
-  <div class="content">
-    <div class="status" id="laporStatus" style="display:none;color:#FF6B35;">📡 Mengambil lokasi...</div>
-    
+  <div class="cont">
     <div class="card">
-      <div class="form-group">
-        <label>Deskripsi PKL</label>
-        <textarea id="laporDeskripsi" placeholder="Nama pedagang, jualan apa, lokasi spesifik..."></textarea>
+      <div class="fg">
+        <label>Ambil Foto (wajib)</label>
+        <label class="up-btn">📷 Buka Kamera <input type="file" id="laporFoto" accept="image/*" capture="environment" multiple onchange="previewFoto(this)"></label>
+        <div id="laporPreview" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div>
       </div>
-      <div class="form-group">
+      <div class="fg">
+        <label>Deskripsi</label>
+        <textarea id="laporDesc" placeholder="Nama pedagang, jualan apa, lokasi..."></textarea>
+      </div>
+      <div class="fg">
         <label>Kategori</label>
-        <select id="laporKategori">
+        <select id="laporKat">
           <option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option>
           <option value="3">🥬 Sayur/Buah</option><option value="4">👗 Pakaian</option>
           <option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option>
           <option value="7" selected>📍 Lainnya</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>Foto PKL (max 5, opsional)</label>
-        <label class="upload-label">📷 Pilih Foto <input type="file" id="laporFoto" accept="image/*" multiple onchange="previewFoto(this)"></label>
-        <div class="foto-grid" id="laporPreview"></div>
-      </div>
-      <button class="btn-big btn-orange" onclick="submitLaporan()" style="margin-top:12px;">🚀 Kirim Laporan</button>
+      <div id="laporStatus" style="text-align:center;padding:8px;font-size:13px;color:#FF6B35;display:none;"></div>
+      <button class="btn-big btn-o" onclick="submitLaporan()">🚀 Kirim Laporan</button>
     </div>
   </div>
 </div>
 
-<!-- PEDAGANG -->
+<!-- ====== HISTORI INFORMAN ====== -->
+<div id="histori" class="screen">
+  <div class="hdr">
+    <div><h1>📋 Riwayat Laporan</h1></div>
+    <button class="btn-sm btn-out" onclick="goTo('informan')">← Kembali</button>
+  </div>
+  <div class="cont" id="historiList"><p style="text-align:center;color:#888;padding:20px;">Memuat...</p></div>
+</div>
+
+<!-- ====== PEDAGANG ====== -->
 <div id="pedagang" class="screen">
-  <div class="header">
-    <div><h1>🛒 Pedagang</h1><div class="header-sub" id="pedagangUser"></div></div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn-sm btn-outline" onclick="goTo('map')">🗺️</button>
-      <button class="btn-sm btn-outline" onclick="doLogout()">Keluar</button>
+  <div class="hdr">
+    <div><h1>🛒 Pedagang</h1><div class="hdr-sub" id="pedagangUser"></div></div>
+    <div style="display:flex;gap:4px;">
+      <button class="btn-sm btn-out" onclick="goTo('mapView')">🗺️</button>
+      <button class="btn-sm btn-out" onclick="doLogout()">Keluar</button>
     </div>
   </div>
-  <div class="content">
-    <button class="btn-big btn-orange" onclick="daftarProduk()">📦 Daftarkan Produk</button>
-    <button class="btn-big btn-white" onclick="goTo('map')">🗺️ Lihat Peta</button>
+  <div class="cont">
+    <button class="btn-big btn-o" onclick="loadLaporanSekitar()">🔍 Lihat Laporan Sekitar</button>
+    <button class="btn-big btn-w" onclick="goTo('daganganSaya')">📦 Dagangan Saya</button>
+    <button class="btn-big btn-w" onclick="goTo('mapView')">🗺️ Peta PKL</button>
   </div>
 </div>
 
-<!-- MAP -->
-<div id="map" class="screen">
-  <div class="header">
+<!-- ====== LAPORAN SEKITAR (Pedagang) ====== -->
+<div id="laporanSekitar" class="screen">
+  <div class="hdr">
+    <div><h1>🔍 Laporan Sekitar</h1></div>
+    <button class="btn-sm btn-out" onclick="goTo('pedagang')">← Kembali</button>
+  </div>
+  <div class="cont" id="laporanSekitarList"><p style="text-align:center;color:#888;padding:20px;">Mengambil lokasi...</p></div>
+</div>
+
+<!-- ====== DAGANGAN SAYA ====== -->
+<div id="daganganSaya" class="screen">
+  <div class="hdr">
+    <div><h1>📦 Dagangan Saya</h1></div>
+    <button class="btn-sm btn-out" onclick="goTo('pedagang')">← Kembali</button>
+  </div>
+  <div class="cont">
+    <button class="btn-big btn-o" onclick="tambahProduk()">+ Tambah Produk</button>
+    <div id="daganganList"><p style="text-align:center;color:#888;padding:20px;">Memuat...</p></div>
+  </div>
+</div>
+
+<!-- ====== MAP ====== -->
+<div id="mapView" class="screen">
+  <div class="hdr">
     <div><h1>🗺️ Peta PKL</h1></div>
-    <div style="display:flex;gap:6px;">
-      <button class="btn-sm btn-outline" onclick="centerMyLoc()">🎯</button>
-      <button class="btn-sm btn-outline" onclick="goBack()">←</button>
+    <div style="display:flex;gap:4px;">
+      <button class="btn-sm btn-out" onclick="centerMyLoc()">🎯</button>
+      <button class="btn-sm btn-out" onclick="goBack()">←</button>
     </div>
   </div>
-  <div class="toolbar">
-    <button class="btn-sm btn-orange" onclick="refreshMap()">🔄 Refresh</button>
-    <button class="btn-sm btn-white" onclick="goBack()">Kembali</button>
+  <div class="tb">
+    <button class="btn-sm btn-o" onclick="refreshMap()">🔄</button>
+    <button class="btn-sm btn-w" onclick="goBack()">Kembali</button>
   </div>
-  <div class="map-full" id="mapContainer"></div>
+  <div class="map-wrap" id="mapContainer"></div>
 </div>
 
 <script src="lib/supabase.min.js"></script>
