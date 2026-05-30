@@ -139,14 +139,24 @@ function init(){
   else setTimeout(init,500)
 }
 async function checkSession(){
-  try{var r=await db.auth.getSession();if(r.data.session){user=r.data.session.user;var p=await db.from('profiles').select('*').eq('id',user.id).single();if(p.data){profile=p.data;showPg(profile.role+'Pg')}}}
+  try{var r=await db.auth.getSession();if(r.data.session){user=r.data.session.user;var p=await db.from('profiles').select('*').eq('id',user.id).single();if(p.data){profile=p.data;showPg(pageForRole(profile.role))}}}
   catch(e){}
+}
+function pageForRole(role){
+  var map={informan:'infPg',pedagang:'pedPg',admin:'adminPg'};
+  return map[role]||'loginPg';
 }
 function showPg(id){
   try {
-    prevPg=document.querySelector('.pg:not([style*="display:none"])');if(prevPg)prevPg=prevPg.id;else prevPg='loginPg';
+    // Check target exists FIRST before hiding anything
+    var el=document.getElementById(id);
+    if(!el){alert('Page not found: '+id);return;}
+    // Save current page for back navigation
+    var cur=document.querySelector('.pg:not([style*="display:none"])');
+    prevPg=cur?cur.id:'loginPg';
+    // Hide all, show target
     document.querySelectorAll('.pg').forEach(function(p){p.style.display='none'});
-    var el=document.getElementById(id);if(!el){alert('Page not found: '+id);return;}el.style.display='block';
+    el.style.display='block';
     if(id==='adminPg'){document.getElementById('aname').textContent=profile?profile.nama:'';loadAdmin()}
     if(id==='infPg')document.getElementById('iname').textContent=profile?profile.nama:''
     if(id==='pedPg')document.getElementById('pname').textContent=profile?profile.nama:''
@@ -155,7 +165,7 @@ function showPg(id){
     if(id==='mapPg')initMap()
   } catch(e) { alert('showPg error: '+e.message); }
 }
-function goBack(){if(prevPg&&document.getElementById(prevPg))showPg(prevPg);else showPg(profile?profile.role+'Pg':'loginPg')}
+function goBack(){if(prevPg&&document.getElementById(prevPg))showPg(prevPg);else showPg(profile?pageForRole(profile.role):'loginPg')}
 
 // AUTH
 async function doLogin(){
@@ -163,7 +173,7 @@ async function doLogin(){
   if(!e||!p){alert('Isi email dan password');return}
   try{var r=await db.auth.signInWithPassword({email:e,password:p});if(r.error){alert('Gagal: '+r.error.message);return}
   user=r.data.user;var pr=await db.from('profiles').select('*').eq('id',user.id).single();if(!pr.data){alert('Profile tidak ditemukan');return}
-  profile=pr.data;showPg(profile.role+'Pg')}catch(err){alert('Error: '+err.message)}
+  profile=pr.data;showPg(pageForRole(profile.role))}catch(err){alert('Error: '+err.message)}
 }
 async function doRegister(){
   var n=document.getElementById('rnama').value.trim(),e=document.getElementById('remail').value.trim(),p=document.getElementById('rpass').value.trim(),rl=document.getElementById('rrole').value;
