@@ -5,112 +5,274 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#FF6B35">
   <title>Lokasi Sekitar</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+      background: #f5f5f5;
       min-height: 100vh;
+    }
+    
+    #home, #mapView, #listView {
+      min-height: 100vh;
+      display: none;
+      flex-direction: column;
+    }
+    
+    #home.active, #mapView.active, #listView.active {
+      display: flex;
+    }
+    
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+      color: white;
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .header h1 { font-size: 22px; }
+    .header p { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+    
+    /* Home Screen */
+    .content {
+      flex: 1;
+      padding: 20px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      color: white;
-    }
-    
-    .container {
-      text-align: center;
+      gap: 16px;
       max-width: 400px;
       width: 100%;
-    }
-    
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-    }
-    
-    .subtitle {
-      font-size: 14px;
-      opacity: 0.9;
-      margin-bottom: 30px;
-    }
-    
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      margin-bottom: 20px;
-    }
-    
-    .status {
-      font-size: 16px;
-      color: #333;
-      margin-bottom: 20px;
+      margin: 0 auto;
     }
     
     .btn {
       background: #FF6B35;
       color: white;
       border: none;
-      padding: 14px 28px;
+      padding: 16px;
       border-radius: 12px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
       transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 15px rgba(255,107,53,0.3);
+      box-shadow: 0 4px 12px rgba(255,107,53,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     
-    .btn:active {
-      transform: scale(0.98);
-    }
+    .btn:active { transform: scale(0.98); }
     
     .btn-secondary {
-      background: #f0f0f0;
+      background: white;
       color: #333;
-      margin-top: 10px;
-      box-shadow: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
-    .info {
-      font-size: 12px;
+    .btn-small {
+      padding: 10px 16px;
+      font-size: 13px;
+      width: auto;
+    }
+    
+    .status-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    
+    .status-text {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    
+    .location-count {
+      font-size: 13px;
       color: #666;
-      margin-top: 15px;
-      line-height: 1.5;
+      text-align: center;
     }
     
-    .logo {
-      font-size: 48px;
-      margin-bottom: 20px;
+    .emoji-big { font-size: 64px; text-align: center; margin: 10px 0; }
+    
+    /* Map View */
+    #map {
+      flex: 1;
+      width: 100%;
+      min-height: 400px;
     }
+    
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      background: white;
+      border-bottom: 1px solid #eee;
+      flex-wrap: wrap;
+    }
+    
+    .toolbar .btn-small {
+      flex: 1;
+      min-width: 80px;
+    }
+    
+    /* List View */
+    .location-list {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+    }
+    
+    .location-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .location-info {
+      flex: 1;
+    }
+    
+    .location-coords {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+    }
+    
+    .location-time {
+      font-size: 11px;
+      color: #bbb;
+      margin-top: 2px;
+    }
+    
+    .delete-btn {
+      background: #ff4444;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #888;
+    }
+    
+    .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+    
+    /* Back button */
+    .back-btn {
+      position: absolute;
+      left: 12px;
+      top: 14px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    
+    .header { position: relative; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">📍</div>
-    <h1>Lokasi Sekitar</h1>
-    <p class="subtitle">Crowdsourcing PKL di sekitar kamu</p>
+
+  <!-- HOME SCREEN -->
+  <div id="home" class="active">
+    <div class="header">
+      <h1>📍 Lokasi Sekitar</h1>
+      <p>Crowdsourcing PKL di sekitar kamu</p>
+    </div>
     
-    <div class="card">
-      <p class="status" id="status">Siap digunakan!</p>
-      <button class="btn" onclick="shareLocation()">📍 Bagikan Lokasi</button>
-      <button class="btn btn-secondary" onclick="viewLocations()">🗺️ Lihat Lokasi</button>
-      <p class="info">
-        Bantu pedagang PKL dengan membagikan lokasi ramai di sekitar kamu. 
-        Data tersimpan aman dan bisa diakses via Telegram bot.
-      </p>
+    <div class="content">
+      <div class="status-card">
+        <div class="emoji-big" id="mainEmoji">📍</div>
+        <div class="status-text" id="status">Siap mencarikan PKL!</div>
+        <div class="location-count" id="count"></div>
+      </div>
+      
+      <button class="btn" onclick="shareLocation()">
+        📍 Bagikan Lokasi PKL
+      </button>
+      
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary" onclick="showMap()" style="flex:1;">
+          🗺️ Peta
+        </button>
+        <button class="btn btn-secondary" onclick="showList()" style="flex:1;">
+          📋 Daftar
+        </button>
+      </div>
+      
+      <div style="text-align: center; margin-top: 10px;">
+        <button class="btn-small btn-secondary" onclick="exportData()" style="font-size:12px;">
+          📤 Export Data
+        </button>
+        <button class="btn-small btn-secondary" onclick="importData()" style="font-size:12px; margin-left:6px;">
+          📥 Import Data
+        </button>
+      </div>
     </div>
   </div>
-  
+
+  <!-- MAP VIEW -->
+  <div id="mapView">
+    <div class="header">
+      <button class="back-btn" onclick="showHome()">← Kembali</button>
+      <h1>🗺️ Peta Lokasi</h1>
+    </div>
+    
+    <div class="toolbar">
+      <button class="btn-small" onclick="shareLocation()" style="background:#FF6B35;color:white;">
+        📍 Tambah
+      </button>
+      <button class="btn-small btn-secondary" onclick="centerMap()">
+        🎯 Pusatkan
+      </button>
+      <button class="btn-small btn-secondary" onclick="showList()">
+        📋 Daftar
+      </button>
+    </div>
+    
+    <div id="map"></div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="listView">
+    <div class="header">
+      <button class="back-btn" onclick="showHome()">← Kembali</button>
+      <h1>📋 Daftar Lokasi</h1>
+    </div>
+    
+    <div class="location-list" id="locationList">
+      <div class="empty-state">
+        <div class="emoji">📭</div>
+        <p>Belum ada lokasi tersimpan</p>
+        <br>
+        <button class="btn btn-secondary btn-small" onclick="shareLocation()">+ Tambah Lokasi Pertama</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
