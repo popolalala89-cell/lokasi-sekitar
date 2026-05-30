@@ -18,23 +18,15 @@ let markerLayer = null;
 // ========================================
 
 function initApp() {
-  // Show something immediately so screen isn't blank
   document.getElementById('loginScreen').classList.add('active');
   
-  // Wait for Supabase to load (try for up to 10 seconds)
-  let attempts = 0;
-  const tryInit = setInterval(() => {
-    attempts++;
-    if (typeof window.supabase !== 'undefined') {
-      clearInterval(tryInit);
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      checkAuth();
-    } else if (attempts > 50) {
-      clearInterval(tryInit);
-      document.querySelector('#loginScreen .auth-card').innerHTML = 
-        '<h2>⚠️ Gagal</h2><p style="text-align:center;color:#888;">Tidak bisa terhubung ke server.<br>Periksa koneksi internet.</p>';
-    }
-  }, 200);
+  if (typeof window.supabase !== 'undefined') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    checkAuth();
+  } else {
+    document.querySelector('#loginScreen .auth-card').innerHTML = 
+      '<h2>⚠️ Gagal</h2><p style="text-align:center;color:#888;">Tidak bisa muat library.<br>Coba restart aplikasi.</p>';
+  }
 }
 
 async function checkAuth() {
