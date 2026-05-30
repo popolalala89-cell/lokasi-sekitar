@@ -305,17 +305,8 @@ async function daftarDagangan() {
 // ========================================
 
 function initMap() {
-  if (currentMap) { currentMap.invalidateSize(); return; }
-  
-  currentMap = L.map('map').setView([-6.2, 106.8], 13);
-  
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 19
-  }).addTo(currentMap);
-  
-  markerLayer = L.layerGroup().addTo(currentMap);
-  loadMapMarkers();
+  alert('🗺️ Peta sedang dalam pengembangan');
+  return;
 }
 
 async function loadMapMarkers() {
