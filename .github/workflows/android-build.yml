@@ -30,12 +30,7 @@ jobs:
         npx cap sync android
         
     - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        cmdline-tools-version: 9.0
-        build-tools-version: 34.0.0
-        platform-version: 34
-        api-level: 34
+      uses: android-actions/setup-android@v2
         
     - name: Build Debug APK
       run: |
