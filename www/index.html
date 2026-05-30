@@ -194,15 +194,20 @@ function goBack() {
 
 // ===== AUTH =====
 async function doLogin() {
-  if (!db) { alert('⏳ Menghubungkan...'); return; }
+  if (!db) { alert('⏳ DB not ready'); return; }
   var e=document.getElementById('lemail').value.trim(), p=document.getElementById('lpass').value.trim();
   if (!e||!p) { alert('Isi email dan password'); return; }
-  var r=await db.auth.signInWithPassword({email:e,password:p});
-  if (r.error) { alert('Gagal: '+r.error.message); return; }
-  user=r.data.user;
-  var pr=await db.from('profiles').select('*').eq('id',user.id).single();
-  if (!pr.data) { alert('Profile tidak ditemukan'); return; }
-  profile=pr.data; goPage(profile.role+'Page');
+  try {
+    var r=await db.auth.signInWithPassword({email:e,password:p});
+    if (r.error) { alert('Gagal: '+r.error.message); return; }
+    user=r.data.user;
+    alert('Login OK. Loading profile...');
+    var pr=await db.from('profiles').select('*').eq('id',user.id).single();
+    if (!pr.data) { alert('Profile tidak ditemukan!'); return; }
+    profile=pr.data;
+    alert('Role: '+profile.role+'. Navigating...');
+    goPage(profile.role+'Page');
+  } catch(err) { alert('ERROR: '+err.message); }
 }
 
 async function doRegister() {
