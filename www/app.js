@@ -1,352 +1,276 @@
-// ========================================
-// LOKASI SEKITAR - Full Stack App
-// Supabase + Capacitor + Leaflet
-// ========================================
+// ===== GLOBALS =====
+var db = null;
+var user = null;
+var profile = null;
+var myMap = null;
+var markerLayer = null;
+var prevScreen = null;
+var SUPABASE_URL = 'https://dnpbyfpbbwkgsfwmzlva.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
 
-// Supabase Config
-const SUPABASE_URL = 'https://dnpbyfpbbwkgsfwmzlva.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
+// ===== INIT =====
+function init() {
+  if (typeof supabase !== 'undefined') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    checkSession();
+  } else {
+    setTimeout(init, 500);
+  }
+}
 
-let supabase = null;
-let currentUser = null;
-let currentProfile = null;
-let currentMap = null;
-let markerLayer = null;
-
-// ========================================
-// INIT
-// ========================================
-
-function initApp() {
-  // Login screen is already visible by default (CSS)
-  
+async function checkSession() {
   try {
-    if (typeof window.supabase !== 'undefined') {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      checkAuth();
-    } else {
-      // Show error on login screen
-      document.querySelector('#loginScreen .auth-card').innerHTML = 
-        '<h2>⚠️ Error</h2><p style="text-align:center;color:#888;">Library gagal dimuat</p>';
+    var res = await db.auth.getSession();
+    if (res.data.session) {
+      user = res.data.session.user;
+      var p = await db.from('profiles').select('*').eq('id', user.id).single();
+      profile = p.data;
+      goTo(profile.role);
     }
-  } catch(e) {
-    document.querySelector('#loginScreen .auth-card').innerHTML = 
-      '<h2>⚠️ Error</h2><p style="text-align:center;color:#888;">' + e.message + '</p>';
-  }
+  } catch(e) {}
 }
 
-async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    await loadProfile();
-    showRoleScreen();
-  } else {
-    showScreen('loginScreen');
-  }
+function goTo(screen) {
+  prevScreen = document.querySelector('.screen.active') ? document.querySelector('.screen.active').id : null;
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(screen).classList.add('active');
+  if (screen === 'admin') { document.getElementById('adminUser').textContent = profile ? profile.nama : ''; loadAdmin(); }
+  if (screen === 'informan') document.getElementById('informanUser').textContent = profile ? profile.nama : '';
+  if (screen === 'pedagang') document.getElementById('pedagangUser').textContent = profile ? profile.nama : '';
+  if (screen === 'map') initMap();
 }
 
-async function loadProfile() {
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', currentUser.id)
-    .single();
-  currentProfile = data;
+function goBack() {
+  if (prevScreen && document.getElementById(prevScreen)) goTo(prevScreen);
+  else goTo(profile ? profile.role : 'login');
 }
 
-// ========================================
-// SCREEN MANAGEMENT
-// ========================================
-
-function showScreen(screenId) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
-  
-  if (screenId === 'adminScreen') loadAdminDashboard();
-  if (screenId === 'informanScreen') loadInformanHome();
-  if (screenId === 'pedagangScreen') loadPedagangHome();
-  if (screenId === 'mapScreen') initMap();
+// ===== AUTH =====
+async function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPassword').value.trim();
+  if (!email || !pass) { alert('Isi email dan password'); return; }
+  var res = await db.auth.signInWithPassword({ email: email, password: pass });
+  if (res.error) { alert('Gagal: ' + res.error.message); return; }
+  user = res.data.user;
+  var p = await db.from('profiles').select('*').eq('id', user.id).single();
+  profile = p.data;
+  goTo(profile.role);
 }
 
-function showRoleScreen() {
-  if (!currentProfile) {
-    showScreen('loginScreen');
-    return;
-  }
-  showScreen(currentProfile.role + 'Screen');
-}
-
-// ========================================
-// AUTH
-// ========================================
-
-async function register() {
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value.trim();
-  const nama = document.getElementById('regNama').value.trim();
-  const role = document.getElementById('regRole').value;
-  
-  if (!email || !password || !nama) {
-    alert('Mohon isi semua field');
-    return;
-  }
-  
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) { alert('Error: ' + error.message); return; }
-  
-  // Update profile nama + role
-  await supabase.from('profiles').update({ nama, role }).eq('id', data.user.id);
-  
+async function doRegister() {
+  var nama = document.getElementById('regNama').value.trim();
+  var email = document.getElementById('regEmail').value.trim();
+  var pass = document.getElementById('regPassword').value.trim();
+  var role = document.getElementById('regRole').value;
+  if (!nama || !email || !pass) { alert('Isi semua field'); return; }
+  if (pass.length < 6) { alert('Password minimal 6 karakter'); return; }
+  var res = await db.auth.signUp({ email: email, password: pass });
+  if (res.error) { alert('Gagal: ' + res.error.message); return; }
+  await db.from('profiles').update({ nama: nama, role: role }).eq('id', res.data.user.id);
   alert('✅ Registrasi berhasil! Silakan login.');
-  showScreen('loginScreen');
+  goTo('login');
 }
 
-async function login() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value.trim();
+async function doLogout() {
+  await db.auth.signOut();
+  user = null; profile = null;
+  goTo('login');
+}
+
+// ===== ADMIN =====
+async function loadAdmin() {
+  var l = await db.from('lokasi').select('id', { count: 'exact', head: true });
+  var la = await db.from('lokasi').select('id', { count: 'exact', head: true }).eq('status', 'aktif');
+  var u = await db.from('profiles').select('id', { count: 'exact', head: true });
+  var lp = await db.from('lokasi').select('id', { count: 'exact', head: true }).eq('status', 'aktif');
+  document.getElementById('sLokasi').textContent = l.count || 0;
+  document.getElementById('sAktif').textContent = la.count || 0;
+  document.getElementById('sUser').textContent = u.count || 0;
+  document.getElementById('sPending').textContent = lp.count || 0;
   
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) { alert('Error: ' + error.message); return; }
-  
-  currentUser = data.user;
-  await loadProfile();
-  showRoleScreen();
-}
-
-async function logout() {
-  await supabase.auth.signOut();
-  currentUser = null;
-  currentProfile = null;
-  showScreen('loginScreen');
-}
-
-// ========================================
-// ADMIN SCREEN
-// ========================================
-
-async function loadAdminDashboard() {
-  document.getElementById('adminNama').textContent = currentProfile.nama || currentUser.email;
-  
-  // Load stats
-  const { data: lokasi } = await supabase.from('lokasi').select('id, status');
-  const { data: laporan } = await supabase.from('laporan').select('id');
-  const { data: users } = await supabase.from('profiles').select('role');
-  
-  const totalLokasi = lokasi.length;
-  const lokasiAktif = lokasi.filter(l => l.status === 'aktif').length;
-  const totalLaporan = laporan.length;
-  const totalUser = users.length;
-  
-  document.getElementById('statLokasi').textContent = totalLokasi;
-  document.getElementById('statAktif').textContent = lokasiAktif;
-  document.getElementById('statLaporan').textContent = totalLaporan;
-  document.getElementById('statUser').textContent = totalUser;
-  
-  // Load pending verifications
-  const { data: pending } = await supabase
-    .from('lokasi')
-    .select('*')
-    .eq('status', 'aktif')
-    .order('created_at', { ascending: false })
-    .limit(20);
-  
-  renderAdminTable(pending);
-}
-
-function renderAdminTable(locations) {
-  const tbody = document.getElementById('adminTableBody');
-  if (locations.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#888;">Belum ada lokasi</td></tr>';
-    return;
-  }
-  
-  tbody.innerHTML = locations.map(l => `
-    <tr>
-      <td>${new Date(l.created_at).toLocaleDateString('id-ID')}</td>
-      <td>${l.deskripsi || l.nama_pedagang || 'Tanpa nama'}</td>
-      <td><span class="badge badge-${l.status}">${l.status}</span></td>
-      <td>
-        <button class="btn-mini btn-success" onclick="verifikasiLokasi(${l.id})">✅</button>
-        <button class="btn-mini btn-danger" onclick="tolakLokasi(${l.id})">❌</button>
-        <button class="btn-mini btn-info" onclick="hapusLokasi(${l.id})">🗑️</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-async function verifikasiLokasi(id) {
-  await supabase.from('lokasi').update({ status: 'diverifikasi' }).eq('id', id);
-  loadAdminDashboard();
-}
-
-async function tolakLokasi(id) {
-  await supabase.from('lokasi').update({ status: 'ditolak' }).eq('id', id);
-  loadAdminDashboard();
-}
-
-async function hapusLokasi(id) {
-  if (!confirm('Yakin hapus lokasi ini?')) return;
-  await supabase.from('lokasi').delete().eq('id', id);
-  loadAdminDashboard();
-}
-
-function manageUsers() {
-  alert('Fitur kelola user akan ditambahkan segera');
-}
-
-function exportAllData() {
-  alert('Fitur export data akan ditambahkan segera');
-}
-
-// ========================================
-// INFORMAN SCREEN
-// ========================================
-
-function loadInformanHome() {
-  document.getElementById('informanNama').textContent = currentProfile.nama || currentUser.email;
-}
-
-async function shareLocation() {
-  if (!navigator.geolocation) {
-    alert('Geolocation tidak didukung');
-    return;
-  }
-  
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    
-    document.getElementById('informanStatus').textContent = 'Menyimpan...';
-    
-    const { error } = await supabase.from('lokasi').insert({
-      user_id: currentUser.id,
-      latitude: lat,
-      longitude: lng,
-      status: 'aktif',
-      deskripsi: 'PKL ditemukan oleh informan'
-    });
-    
-    if (error) {
-      document.getElementById('informanStatus').textContent = '❌ Gagal: ' + error.message;
-    } else {
-      document.getElementById('informanStatus').textContent = '✅ Lokasi PKL tersimpan!';
-      
-      // Refresh map if visible
-      if (document.getElementById('mapScreen').classList.contains('active')) {
-        loadMapMarkers();
+  var pending = await db.from('lokasi').select('*, profiles(nama)').order('created_at', { ascending: false }).limit(30);
+  var html = '';
+  if (pending.data && pending.data.length > 0) {
+    pending.data.forEach(function(loc) {
+      var badge = '<span class="badge badge-' + loc.status + '">' + loc.status + '</span>';
+      var fotoHtml = '';
+      if (loc.foto_url && loc.foto_url.length > 0) {
+        fotoHtml = '<div style="margin-top:4px;">';
+        loc.foto_url.forEach(function(url) {
+          fotoHtml += '<img src="' + url + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px;" onclick="window.open(\\\'' + url + '\\\')">';
+        });
+        fotoHtml += '</div>';
       }
-      
-      setTimeout(() => {
-        document.getElementById('informanStatus').textContent = 'Siap melaporkan PKL';
-      }, 3000);
-    }
-  }, (error) => {
-    document.getElementById('informanStatus').textContent = '❌ ' + error.message;
-  });
-}
-
-async function laporkanDenganDetail() {
-  const deskripsi = prompt('Deskripsi PKL (nama pedagang, jualan apa, dll):');
-  if (!deskripsi) return;
-  
-  const kategoriPilih = prompt('Kategori: 1.🍜Makanan 2.🧋Minuman 3.🥬Sayur 4.👗Pakaian 5.💍Aksesoris 6.📱Elektronik 7.📍Lainnya\nPilih nomor:');
-  let kategoriId = 7;
-  if (kategoriPilih >= 1 && kategoriPilih <= 7) kategoriId = parseInt(kategoriPilih);
-  
-  if (!navigator.geolocation) { alert('Geolocation tidak didukung'); return; }
-  
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    const { error } = await supabase.from('lokasi').insert({
-      user_id: currentUser.id,
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      deskripsi,
-      kategori_id: kategoriId,
-      status: 'aktif'
+      html += '<div class="table-row">';
+      html += '<div><b>' + (loc.deskripsi || 'Tanpa nama') + '</b>';
+      if (loc.profiles) html += ' <small style="color:#888;">oleh ' + (loc.profiles.nama || '?') + '</small>';
+      html += '<br><small>' + new Date(loc.created_at).toLocaleDateString('id-ID') + ' | ' + badge + '</small>';
+      html += fotoHtml + '</div>';
+      html += '<div style="display:flex;gap:4px;">';
+      if (loc.status === 'aktif') html += '<button class="btn-sm btn-green" onclick="verifikasi(' + loc.id + ')">✅</button>';
+      if (loc.status === 'aktif') html += '<button class="btn-sm btn-red" onclick="tolak(' + loc.id + ')">❌</button>';
+      html += '<button class="btn-sm btn-red" onclick="hapusLok(' + loc.id + ')">🗑️</button>';
+      html += '</div></div>';
     });
-    
-    if (error) {
-      alert('Gagal: ' + error.message);
-    } else {
-      alert('✅ Laporan berhasil disimpan!');
-    }
-  });
-}
-
-// ========================================
-// PEDAGANG SCREEN
-// ========================================
-
-function loadPedagangHome() {
-  document.getElementById('pedagangNama').textContent = currentProfile.nama || currentUser.email;
-}
-
-async function daftarDagangan() {
-  const nama = prompt('Nama jualan/dagangan:');
-  if (!nama) return;
-  const harga = prompt('Harga (contoh: Rp 10.000):') || '';
-  
-  const { error } = await supabase.from('produk').insert({
-    user_id: currentUser.id,
-    nama_produk: nama,
-    harga: harga
-  });
-  
-  if (error) {
-    alert('Gagal: ' + error.message);
   } else {
-    alert('✅ Dagangan berhasil didaftarkan!');
+    html = '<p style="text-align:center;color:#888;padding:20px;">Belum ada lokasi</p>';
+  }
+  document.getElementById('adminTable').innerHTML = html;
+}
+
+async function verifikasi(id) { await db.from('lokasi').update({ status: 'diverifikasi' }).eq('id', id); loadAdmin(); }
+async function tolak(id) { await db.from('lokasi').update({ status: 'ditolak' }).eq('id', id); loadAdmin(); }
+async function hapusLok(id) { if (confirm('Hapus permanen?')) { await db.from('lokasi').delete().eq('id', id); loadAdmin(); } }
+
+// ===== INFORMAN =====
+function shareLoc() { showLaporForm('cepat'); }
+function laporkanDetail() { showLaporForm('detail'); }
+
+function showLaporForm(mode) {
+  document.getElementById('laporMode').textContent = mode === 'cepat' ? 'Laporan Cepat' : 'Laporan Detail';
+  document.getElementById('laporMode').dataset.mode = mode;
+  document.getElementById('laporDeskripsi').value = '';
+  document.getElementById('laporKategori').value = '7';
+  document.getElementById('laporPreview').innerHTML = '';
+  goTo('lapor');
+}
+
+async function submitLaporan() {
+  var mode = document.getElementById('laporMode').dataset.mode;
+  var deskripsi = document.getElementById('laporDeskripsi').value.trim();
+  var katId = document.getElementById('laporKategori').value;
+  var fotoFiles = document.getElementById('laporFoto').files;
+  
+  if (mode === 'detail' && !deskripsi) { alert('Isi deskripsi PKL'); return; }
+  
+  document.getElementById('laporStatus').style.display = 'block';
+  document.getElementById('laporStatus').textContent = '📡 Mengambil lokasi...';
+  
+  if (!navigator.geolocation) { alert('GPS tidak didukung'); goBack(); return; }
+  
+  navigator.geolocation.getCurrentPosition(async function(pos) {
+    document.getElementById('laporStatus').textContent = '📤 Mengupload...';
+    
+    // Upload foto dulu
+    var fotoUrls = [];
+    if (fotoFiles && fotoFiles.length > 0) {
+      for (var i = 0; i < Math.min(fotoFiles.length, 5); i++) {
+        var file = fotoFiles[i];
+        var fileName = user.id + '/' + Date.now() + '_' + i + '.' + file.name.split('.').pop();
+        
+        var uploadRes = await db.storage.from('pkl-photos').upload(fileName, file, {
+          contentType: file.type,
+          upsert: false
+        });
+        
+        if (!uploadRes.error) {
+          var urlRes = db.storage.from('pkl-photos').getPublicUrl(fileName);
+          fotoUrls.push(urlRes.data.publicUrl);
+        }
+      }
+    }
+    
+    // Simpan lokasi
+    var lokasiData = {
+      user_id: user.id,
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+      deskripsi: deskripsi || 'PKL ditemukan',
+      kategori_id: parseInt(katId),
+      status: 'aktif'
+    };
+    
+    if (fotoUrls.length > 0) lokasiData.foto_url = fotoUrls;
+    
+    var res = await db.from('lokasi').insert(lokasiData);
+    
+    document.getElementById('laporStatus').style.display = 'none';
+    
+    if (res.error) {
+      alert('❌ Gagal: ' + res.error.message);
+    } else {
+      alert('✅ Laporan tersimpan! Terima kasih.');
+    }
+    goTo('informan');
+  }, function(err) {
+    document.getElementById('laporStatus').style.display = 'none';
+    alert('❌ Gagal GPS: ' + err.message);
+    goTo('informan');
+  }, { enableHighAccuracy: true });
+}
+
+function previewFoto(input) {
+  var preview = document.getElementById('laporPreview');
+  preview.innerHTML = '';
+  if (input.files) {
+    for (var i = 0; i < Math.min(input.files.length, 5); i++) {
+      var reader = new FileReader();
+      reader.onload = (function(file) {
+        return function(e) {
+          var img = document.createElement('img');
+          img.src = e.target.result;
+          img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:8px;margin:4px;';
+          preview.appendChild(img);
+        };
+      })(input.files[i]);
+      reader.readAsDataURL(input.files[i]);
+    }
   }
 }
 
-// ========================================
-// MAP SCREEN (shared)
-// ========================================
-
-function initMap() {
-  alert('🗺️ Peta sedang dalam pengembangan');
-  return;
+// ===== PEDAGANG =====
+function daftarProduk() {
+  var nama = prompt('Nama produk:');
+  if (!nama) return;
+  var harga = prompt('Harga (contoh: Rp 10.000):') || '';
+  db.from('produk').insert({ user_id: user.id, nama_produk: nama, harga: harga }).then(function(res) {
+    if (res.error) { alert('Gagal: ' + res.error.message); }
+    else { alert('✅ Produk didaftarkan!'); }
+  });
 }
 
-async function loadMapMarkers() {
-  if (!currentMap || !markerLayer) return;
-  
+// ===== MAP =====
+function initMap() {
+  setTimeout(function() {
+    var container = document.getElementById('mapContainer');
+    if (myMap) { myMap.invalidateSize(); loadMarkers(); return; }
+    L.Icon.Default.imagePath = 'lib/images/';
+    myMap = L.map('mapContainer').setView([-6.2, 106.8], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(myMap);
+    markerLayer = L.layerGroup().addTo(myMap);
+    loadMarkers();
+  }, 300);
+}
+
+async function loadMarkers() {
+  if (!myMap || !markerLayer) return;
   markerLayer.clearLayers();
-  
-  const { data: locations } = await supabase
-    .from('lokasi')
-    .select('*')
-    .in('status', ['aktif', 'diverifikasi'])
-    .order('created_at', { ascending: false });
-  
-  if (locations && locations.length > 0) {
-    const bounds = [];
-    locations.forEach(loc => {
-      const marker = L.marker([loc.latitude, loc.longitude])
-        .addTo(markerLayer)
-        .bindPopup(`
-          <b>📍 ${loc.deskripsi || 'PKL'}</b><br>
-          <small>${new Date(loc.created_at).toLocaleDateString('id-ID')}</small><br>
-          <small>Status: ${loc.status}</small>
-        `);
+  var res = await db.from('lokasi').select('*').in('status', ['aktif','diverifikasi']).order('created_at', { ascending: false });
+  if (res.data && res.data.length > 0) {
+    var bounds = [];
+    res.data.forEach(function(loc) {
+      var popupContent = '<b>📍 ' + (loc.deskripsi || 'PKL') + '</b><br><small>' + new Date(loc.created_at).toLocaleDateString('id-ID') + '</small><br><small>' + loc.status + '</small>';
+      if (loc.foto_url && loc.foto_url.length > 0) {
+        popupContent += '<br><img src="' + loc.foto_url[0] + '" style="width:150px;border-radius:8px;margin-top:4px;">';
+      }
+      var m = L.marker([loc.latitude, loc.longitude]).addTo(markerLayer);
+      m.bindPopup(popupContent);
       bounds.push([loc.latitude, loc.longitude]);
     });
-    currentMap.fitBounds(bounds, { padding: [30, 30] });
+    myMap.fitBounds(bounds, { padding: [30, 30] });
   }
 }
-
-function centerMap() {
-  if (!currentMap) return;
+function refreshMap() { loadMarkers(); }
+function centerMyLoc() {
+  if (!myMap) return;
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      currentMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      myMap.setView([pos.coords.latitude, pos.coords.longitude], 15);
+      L.circleMarker([pos.coords.latitude, pos.coords.longitude], { radius: 8, color: '#FF6B35', fillColor: '#FF6B35', fillOpacity: 0.5 }).addTo(markerLayer).bindPopup('📍 Posisi kamu');
     });
   }
 }
 
-// ========================================
-// START
-// ========================================
-
-document.addEventListener('DOMContentLoaded', initApp);
+// Start
+document.addEventListener('DOMContentLoaded', init);
