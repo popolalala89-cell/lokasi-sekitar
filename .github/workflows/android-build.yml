@@ -22,12 +22,10 @@ jobs:
         node-version: '18'
         
     - name: Install dependencies
-      run: |
-        npm install
+      run: npm install
         
     - name: Sync Capacitor
-      run: |
-        npx cap sync android
+      run: npx cap sync android
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
@@ -35,7 +33,6 @@ jobs:
     - name: Build Debug APK
       run: |
         cd android
-        # Download gradle-wrapper.jar if not exists
         if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
           curl -L -o gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/master/gradle/wrapper/gradle-wrapper.jar
         fi
@@ -49,22 +46,30 @@ jobs:
         path: android/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
         
-    - name: Build Release APK (on tag)
+    - name: Decode Keystore
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        cd android/app
+        echo "$ANDROID_KEYSTORE" | tr -d '\n\r\t ' | base64 -d > keystore.jks
+        if [ ! -s keystore.jks ]; then echo "ERROR: Keystore empty"; exit 1; fi
+        echo "Keystore size: $(wc -c < keystore.jks) bytes"
+      env:
+        ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+        
+    - name: Build Release APK
       if: startsWith(github.ref, 'refs/tags/v')
       run: |
         cd android
-        printf '%s' "${{ secrets.ANDROID_KEYSTORE }}" | base64 -d > app/keystore.jks 2>/dev/null
-        if [ ! -s app/keystore.jks ]; then
-          echo "ERROR: Keystore file is empty or decoding failed"
-          exit 1
-        fi
-        file app/keystore.jks
         ./gradlew assembleRelease \
-          -Pandroid.injected.signing.store.file=keystore.jks \
-          -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASSWORD }}" \
-          -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
-          -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASSWORD }}"
-          
+          -Pandroid.injected.signing.store.file=app/keystore.jks \
+          -Pandroid.injected.signing.store.password="$KEYSTORE_PASS" \
+          -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+          -Pandroid.injected.signing.key.password="$KEY_PASS"
+      env:
+        KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASS: ${{ secrets.KEY_PASSWORD }}
+        
     - name: Upload Release APK
       if: startsWith(github.ref, 'refs/tags/v')
       uses: actions/upload-artifact@v4
