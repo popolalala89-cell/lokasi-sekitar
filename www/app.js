@@ -3,11 +3,17 @@
      3|var SUPABASE_URL = 'https://dnpbyfpbbwkgsfwmzlva.supabase.co';
      4|var SUPABASE_KEY = 'sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
      5|
-     6|// ===== INIT =====
-     7|function init() {
-     8|  if (typeof supabase !== 'undefined') { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); checkSession(); }
-     9|  else setTimeout(init, 500);
-    10|}
+// ===== INIT =====
+var initReady = false;
+function init() {
+  if (typeof supabase !== 'undefined') {
+    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    initReady = true;
+    checkSession();
+  } else {
+    setTimeout(init, 500);
+  }
+}
     11|
     12|async function checkSession() {
     13|  try {
@@ -40,13 +46,16 @@
     40|}
     41|
     42|// ===== AUTH =====
-    43|async function doLogin() {
-    44|  var e = document.getElementById('loginEmail').value.trim(), p = document.getElementById('loginPassword').value.trim();
-    45|  if (!e || !p) { alert('Isi email dan password'); return; }
-    46|  var r = await db.auth.signInWithPassword({ email: e, password: p });
-    47|  if (r.error) { alert('Gagal: ' + r.error.message); return; }
-    48|  user = r.data.user; await loadProfile(); goTo(profile.role);
-    49|}
+async function doLogin() {
+  if (!db || !initReady) { alert('⏳ Menghubungkan ke server... Tunggu sebentar.'); return; }
+  var e = document.getElementById('loginEmail').value.trim(), p = document.getElementById('loginPassword').value.trim();
+  if (!e || !p) { alert('Isi email dan password'); return; }
+  try {
+    var r = await db.auth.signInWithPassword({ email: e, password: p });
+    if (r.error) { alert('Gagal: ' + r.error.message); return; }
+    user = r.data.user; await loadProfile(); goTo(profile.role);
+  } catch(err) { alert('Error: ' + err.message); }
+}
     50|
     51|async function doRegister() {
     52|  var n = document.getElementById('regNama').value.trim(), e = document.getElementById('regEmail').value.trim();
