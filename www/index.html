@@ -303,7 +303,7 @@ async function submitLaporan() {
       for (var i = 0; i < Math.min(files.length, 5); i++) {
         var f = files[i]; var fn = user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
         var up = await db.storage.from('pkl-photos').upload(fn, f, {contentType:f.type,upsert:false});
-        if (up.error) { fotoErrors++; console.log('Upload error:', up.error.message); }
+        if (up.error) { fotoErrors++; fotoUrls.push('ERROR:'+up.error.message); }
         else {
           var u = db.storage.from('pkl-photos').getPublicUrl(fn);
           if (u.data && u.data.publicUrl) fotoUrls.push(u.data.publicUrl);
@@ -318,8 +318,12 @@ async function submitLaporan() {
     if (r.error) { alert('❌ '+r.error.message); }
     else {
       var msg = '✅ Laporan terkirim!';
-      if (fotoUrls.length > 0) msg += '\n📸 '+fotoUrls.length+' foto terupload';
-      if (fotoErrors > 0) msg += '\n⚠️ '+fotoErrors+' foto gagal upload';
+      if (fotoUrls.length > 0) {
+        var ok = fotoUrls.filter(function(u) { return !u.startsWith('ERROR:'); });
+        var errs = fotoUrls.filter(function(u) { return u.startsWith('ERROR:'); });
+        if (ok.length > 0) msg += '\n📸 '+ok.length+' foto berhasil';
+        if (errs.length > 0) msg += '\n❌ Gagal: '+errs[0].replace('ERROR:','');
+      }
       msg += '\n+5 poin';
       alert(msg);
       await db.rpc('increment_poin',{uid:user.id,amount:5});
