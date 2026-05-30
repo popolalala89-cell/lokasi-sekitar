@@ -8,7 +8,7 @@
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:Arial,sans-serif;background:#f5f5f5}
-    .pg{}
+    .pg{display:none}
     #loginPg{display:block}
     .box{background:white;padding:24px;border-radius:16px;width:90%;max-width:350px;margin:40px auto;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
     .box h2{text-align:center;color:#FF6B35;margin-bottom:14px}
@@ -135,10 +135,6 @@ var SUPABASE_URL='https://dnpbyfpbbwkgsfwmzlva.supabase.co';
 var SUPABASE_KEY='sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
 
 function init(){
-  // Hide all pages except login
-  document.querySelectorAll('.pg').forEach(function(p){
-    if(p.id!=='loginPg')p.style.display='none';
-  });
   if(typeof supabase!=='undefined'){db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);checkSession()}
   else setTimeout(init,500)
 }
