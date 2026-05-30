@@ -95,7 +95,9 @@
     <button class="btn btn-o" onclick="showPage('laporPg')">📸 Lapor PKL Sekarang</button>
     <button class="btn btn-w" onclick="showPage('cariMisiPg')">🔍 Cari Misi</button>
     <button class="btn btn-w" onclick="showPage('histPg')">📋 Riwayat Laporan</button>
-    <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta Lokasi</button>
+    <button class="btn btn-w" onclick="showPage('leaderPg')">🏆 Leaderboard</button>
+    <button class="btn btn-w" onclick="showPage('profilPg')">👤 Profil Saya</button>
+    <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta</button>
   </div>
 </div>
 
@@ -145,6 +147,7 @@
     <button class="btn btn-o" onclick="loadLaporanSekitar()">🔍 Laporan PKL Sekitar</button>
     <button class="btn btn-w" onclick="showPage('misiPg')">📋 Misi Saya</button>
     <button class="btn btn-w" onclick="showPage('paketPg')">💳 Paket Saya</button>
+    <button class="btn btn-w" onclick="showPage('leaderPg')">🏆 Leaderboard</button>
     <button class="btn btn-w" onclick="showPage('dagPg')">📦 Dagangan Saya</button>
     <button class="btn btn-w" onclick="showPage('mapPg')">🗺️ Peta</button>
   </div>
@@ -228,6 +231,34 @@
   <div class="main">
     <div class="card" id="paketAktif"></div>
     <div class="card" id="paketBeli"></div>
+  </div>
+</div>
+
+<!-- ==================== LEADERBOARD ==================== -->
+<div id="leaderPg" class="pg">
+  <div class="hdr">
+    <div><h3>🏆 Leaderboard</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="goBack()">←</button>
+  </div>
+  <div class="main">
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <button id="tabBulanan" class="btn-sm btn-o" onclick="loadLeaderboard('monthly')" style="flex:1">📅 Bulanan</button>
+      <button id="tabMingguan" class="btn-sm btn-w" onclick="loadLeaderboard('weekly')" style="flex:1">📅 Mingguan</button>
+    </div>
+    <div id="leaderList"></div>
+  </div>
+</div>
+
+<!-- ==================== INFORMAN: PROFIL ==================== -->
+<div id="profilPg" class="pg">
+  <div class="hdr">
+    <div><h3>👤 Profil Saya</h3></div>
+    <button class="btn-sm" style="background:rgba(255,255,255,0.2);color:#fff" onclick="showPage('infPg')">← Kembali</button>
+  </div>
+  <div class="main">
+    <div class="card" style="text-align:center" id="profilInfo"></div>
+    <div class="card" id="profilBadge"></div>
+    <div class="card" id="profilStats"></div>
   </div>
 </div>
 
@@ -461,6 +492,8 @@ function showPage(pageId) {
   if (pageId === 'buatMisiPg') setupMissionForm();
   if (pageId === 'cariMisiPg') loadCariMisi();
   if (pageId === 'paketPg') loadPaket();
+  if (pageId === 'leaderPg') loadLeaderboard('monthly');
+  if (pageId === 'profilPg') loadProfilePage();
 }
 
 /** Back navigation */
@@ -1135,9 +1168,176 @@ async function buyPackage(type) {
 }
 
 // ====================================================================
+// MODULE: LEADERBOARD — Gamifikasi
+// ====================================================================
+
+/** Load leaderboard (monthly/weekly) */
+async function loadLeaderboard(period) {
+  document.getElementById('tabBulanan').className = period === 'monthly' ? 'btn-sm btn-o' : 'btn-sm btn-w';
+  document.getElementById('tabMingguan').className = period === 'weekly' ? 'btn-sm btn-o' : 'btn-sm btn-w';
+
+  try {
+    var now = new Date();
+    var since;
+    if (period === 'weekly') {
+      since = new Date(now); since.setDate(since.getDate() - 7);
+    } else {
+      since = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    var d = await db.from('lokasi').select('user_id, profiles!inner(nama)')
+      .eq('status', 'diverifikasi')
+      .gte('created_at', since.toISOString());
+
+    if (d.error) { showToast('Gagal load leaderboard', 'error'); return; }
+
+    var counts = {};
+    if (d.data) d.data.forEach(function(loc) {
+      var uid = loc.user_id;
+      if (!counts[uid]) counts[uid] = { count: 0, nama: loc.profiles ? loc.profiles.nama : 'Anonim' };
+      counts[uid].count++;
+    });
+
+    var p = await db.from('profiles').select('id,poin').order('poin', {ascending: false}).limit(20);
+    var poinMap = {};
+    if (p.data) p.data.forEach(function(pr) { poinMap[pr.id] = pr.poin || 0; });
+
+    var arr = [];
+    for (var uid in counts) {
+      arr.push({ uid: uid, nama: counts[uid].nama, laporan: counts[uid].count, poin: poinMap[uid] || 0 });
+    }
+    arr.sort(function(a, b) { return b.laporan - a.laporan; });
+    arr = arr.slice(0, 20);
+
+    var medals = ['🥇', '🥈', '🥉'];
+    var html = '';
+    if (arr.length > 0) {
+      arr.forEach(function(row, i) {
+        var medal = i < 3 ? medals[i] : (i + 1);
+        var isMe = row.uid === user.id ? 'style="background:#fff8e1"' : '';
+        html += '<div class="card" ' + isMe + '><div style="display:flex;align-items:center;gap:8px">';
+        html += '<span style="font-size:20px;width:30px;text-align:center">' + medal + '</span>';
+        html += '<div style="flex:1"><b>' + escapeHtml(row.nama) + '</b>';
+        html += '<br><small>' + row.laporan + ' laporan | ⭐ ' + row.poin + ' poin</small></div></div></div>';
+      });
+    } else {
+      html = '<div class="empty-state">Belum ada data leaderboard</div>';
+    }
+    document.getElementById('leaderList').innerHTML = html;
+  } catch(err) { showToast('Gagal load leaderboard', 'error'); }
+}
+
+// ====================================================================
+// MODULE: PROFILE — Halaman Profil
+// ====================================================================
+
+async function loadProfilePage() {
+  if (!profile) return;
+  try {
+    var html = '<div style="font-size:40px;margin-bottom:8px">👤</div>';
+    html += '<b style="font-size:18px">' + escapeHtml(profile.nama || 'Tanpa Nama') + '</b><br>';
+    html += '<small>' + escapeHtml(profile.email || '') + '</small><br>';
+    html += '<span style="font-size:24px;color:#FF6B35">⭐ ' + (profile.poin || 0) + ' poin</span>';
+    document.getElementById('profilInfo').innerHTML = html;
+
+    var total = await db.from('lokasi').select('id', {count: 'exact', head: true}).eq('user_id', user.id);
+    var verified = await db.from('lokasi').select('id', {count: 'exact', head: true}).eq('user_id', user.id).eq('status', 'diverifikasi');
+    var misiJoined = await db.from('lokasi').select('mission_id', {count: 'exact', head: true}).eq('user_id', user.id).not('mission_id', 'is', null);
+    var rank = await getMyRank();
+
+    var statsHtml = '<b>📊 Statistik Saya</b><br>';
+    statsHtml += '📸 Total Laporan: <b>' + (total.count || 0) + '</b><br>';
+    statsHtml += '✅ Diverifikasi: <b>' + (verified.count || 0) + '</b><br>';
+    statsHtml += '🎯 Misi Diikuti: <b>' + (misiJoined.count || 0) + '</b><br>';
+    statsHtml += '🏆 Peringkat Bulan Ini: <b>#' + rank + '</b>';
+    document.getElementById('profilStats').innerHTML = statsHtml;
+
+    var badges = computeBadges(total.count || 0, verified.count || 0);
+    var badgeHtml = '<b>🏅 Badge</b><br>';
+    if (badges.length > 0) {
+      badgeHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+      badges.forEach(function(b) {
+        badgeHtml += '<span style="background:' + b.color + ';color:#fff;padding:4px 10px;border-radius:20px;font-size:11px">' + b.icon + ' ' + b.name + '</span>';
+      });
+      badgeHtml += '</div>';
+    } else {
+      badgeHtml += '<small>Ayo kirim laporan untuk dapatkan badge pertama!</small>';
+    }
+    document.getElementById('profilBadge').innerHTML = badgeHtml;
+  } catch(err) { showToast('Gagal load profil', 'error'); }
+}
+
+async function getMyRank() {
+  try {
+    var now = new Date();
+    var since = new Date(now.getFullYear(), now.getMonth(), 1);
+    var d = await db.from('lokasi').select('user_id').eq('status', 'diverifikasi').gte('created_at', since.toISOString());
+    if (!d.data) return '?';
+    var counts = {};
+    d.data.forEach(function(loc) { counts[loc.user_id] = (counts[loc.user_id] || 0) + 1; });
+    var arr = [];
+    for (var uid in counts) arr.push({ uid: uid, count: counts[uid] });
+    arr.sort(function(a, b) { return b.count - a.count; });
+    for (var i = 0; i < arr.length; i++) { if (arr[i].uid === user.id) return i + 1; }
+    return arr.length + 1;
+  } catch(e) { return '?'; }
+}
+
+function computeBadges(totalLaporan, totalVerified) {
+  var badges = [];
+  if (totalLaporan >= 1) badges.push({ name: 'Pemula', icon: '🌱', color: '#28a745' });
+  if (totalLaporan >= 10) badges.push({ name: 'Rajin', icon: '📸', color: '#17a2b8' });
+  if (totalLaporan >= 50) badges.push({ name: 'Pro Hunter', icon: '🎯', color: '#6f42c1' });
+  if (totalLaporan >= 100) badges.push({ name: 'Legend', icon: '👑', color: '#ffc107' });
+  if (totalVerified >= 10) badges.push({ name: 'Terpercaya', icon: '✅', color: '#28a745' });
+  if (totalVerified >= 50) badges.push({ name: 'Verified Master', icon: '💎', color: '#17a2b8' });
+  if (totalVerified >= 20) badges.push({ name: 'Top Contributor', icon: '⭐', color: '#FF6B35' });
+  return badges;
+}
+
+// ====================================================================
+// MODULE: REALTIME — Notifikasi
+// ====================================================================
+
+function setupRealtime() {
+  if (!db) return;
+  try {
+    var channel = db.channel('status-changes')
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'lokasi' },
+        function(payload) { handleRealtimeUpdate(payload); }
+      )
+      .subscribe(function(status) {
+        if (status === 'SUBSCRIBED') log('Realtime', 'Connected');
+      });
+  } catch(e) { log('Realtime', 'Setup failed', e); }
+}
+
+function handleRealtimeUpdate(payload) {
+  var old = payload.old || {};
+  var newR = payload.new || {};
+  // Notifikasi: laporan diverifikasi
+  if (old.status === 'pending' && newR.status === 'diverifikasi' && user && newR.user_id === user.id) {
+    showToast('🎉 Laporan Anda diverifikasi! +15 poin', 'success');
+  }
+  // Notifikasi: laporan ditolak
+  if (old.status === 'pending' && newR.status === 'ditolak' && user && newR.user_id === user.id) {
+    showToast('📋 Laporan ditolak. Coba lagi dengan foto lebih jelas.', 'warning');
+  }
+  // Refresh admin dashboard
+  if (profile && profile.role === 'admin') {
+    var adminPg = document.getElementById('adminPg');
+    if (adminPg && adminPg.style.display === 'block') loadAdmin();
+  }
+}
+
+// ====================================================================
 // INIT
 // ====================================================================
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', function() {
+  init();
+  setupRealtime();
+});
 </script>
 </body>
 </html>
