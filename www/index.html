@@ -1,444 +1,445 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Lokasi Sekitar</title>
-  <link rel="stylesheet" href="lib/leaflet.css" />
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: sans-serif; background:#f5f5f5; min-height:100vh; }
-    .screen { display:none; min-height:100vh; flex-direction:column; }
-    .screen.active { display:flex; }
-    .hdr { background:linear-gradient(135deg,#FF6B35,#F7931E); color:white; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
-    .hdr h1 { font-size:15px; }
-    .hdr-sub { font-size:10px; opacity:0.8; }
-    .btn-sm { padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; border:none; }
-    .btn-out { background:rgba(255,255,255,0.2); color:white; }
-    .btn-o { background:#FF6B35; color:white; }
-    .btn-w { background:white; color:#333; border:1px solid #ddd; }
-    .btn-g { background:#28a745; color:white; }
-    .btn-r { background:#dc3545; color:white; }
-    .cont { flex:1; padding:12px; max-width:600px; width:100%; margin:0 auto; overflow-y:auto; }
-    .card { background:white; border-radius:10px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.05); margin-bottom:10px; }
-    .fg { margin-bottom:10px; }
-    .fg label { display:block; font-size:12px; color:#666; margin-bottom:3px; font-weight:600; }
-    .fg input, .fg select, .fg textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:13px; }
-    textarea { resize:vertical; min-height:70px; }
-    .btn-big { width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; margin-bottom:8px; }
-    .stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
-    .stat { background:white; border-radius:8px; padding:12px; text-align:center; }
-    .stat-num { font-size:20px; font-weight:700; color:#FF6B35; }
-    .stat-lbl { font-size:10px; color:#888; }
-    .link { text-align:center; margin-top:8px; font-size:12px; color:#FF6B35; cursor:pointer; }
-    .badge { padding:2px 6px; border-radius:6px; font-size:9px; font-weight:600; }
-    .bg-y { background:#fff3cd; color:#856404; }
-    .bg-g { background:#d4edda; color:#155724; }
-    .bg-r { background:#f8d7da; color:#721C24; }
-    .row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid #eee; font-size:12px; gap:8px; }
-    .map-wrap { flex:1; min-height:300px; }
-    .tb { display:flex; gap:4px; padding:6px; background:white; border-bottom:1px solid #eee; }
-    .foto-thumb { width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer; }
-    .up-btn { display:inline-block; padding:8px 16px; background:#f0f0f0; border-radius:6px; cursor:pointer; font-size:12px; }
-    .up-btn input { display:none; }
-    .pts { background:#FF6B35; color:white; border-radius:20px; padding:4px 12px; font-size:13px; font-weight:700; display:inline-block; }
-  </style>
-</head>
-<body>
-
-<!-- LOGIN -->
-<div id="login" class="screen active">
-  <div class="cont" style="justify-content:center;">
-    <div class="card">
-      <h2 style="text-align:center;color:#FF6B35;">📍 Lokasi Sekitar</h2>
-      <p style="text-align:center;color:#888;font-size:10px;">v1.4 — Stable</p>
-      <div class="fg"><input id="loginEmail" type="email" placeholder="Email"></div>
-      <div class="fg"><input id="loginPassword" type="password" placeholder="Password"></div>
-      <button class="btn-big btn-o" onclick="doLogin()">Masuk</button>
-      <div class="link" onclick="switchTo('register')">Belum punya akun? Daftar</div>
-    </div>
-  </div>
-</div>
-
-<!-- REGISTER -->
-<div id="register" class="screen">
-  <div class="cont" style="justify-content:center;">
-    <div class="card">
-      <h2 style="text-align:center;color:#FF6B35;">📝 Daftar</h2>
-      <div class="fg"><input id="regNama" placeholder="Nama"></div>
-      <div class="fg"><input id="regEmail" type="email" placeholder="Email"></div>
-      <div class="fg"><input id="regPassword" type="password" placeholder="Password (min 6)"></div>
-      <div class="fg"><select id="regRole"><option value="informan">🔍 Informan</option><option value="pedagang">🛒 Pedagang</option></select></div>
-      <button class="btn-big btn-o" onclick="doRegister()">Daftar</button>
-      <div class="link" onclick="switchTo('login')">Sudah punya akun? Masuk</div>
-    </div>
-  </div>
-</div>
-
-<!-- ADMIN -->
-<div id="admin" class="screen">
-  <div class="hdr"><div><h1>🛡️ Admin</h1><div class="hdr-sub" id="adminName"></div></div><div><button class="btn-sm btn-out" onclick="switchTo('mapView')">🗺️</button><button class="btn-sm btn-out" onclick="doLogout()">Keluar</button></div></div>
-  <div class="cont">
-    <div class="stats"><div class="stat"><div class="stat-num" id="s1">-</div><div class="stat-lbl">Lokasi</div></div><div class="stat"><div class="stat-num" id="s2">-</div><div class="stat-lbl">User</div></div><div class="stat"><div class="stat-num" id="s3">-</div><div class="stat-lbl">Aktif</div></div><div class="stat"><div class="stat-num" id="s4">-</div><div class="stat-lbl">Pending</div></div></div>
-    <div class="card"><h3 style="font-size:13px;margin-bottom:6px;">📋 Verifikasi</h3><div id="adminList"></div></div>
-  </div>
-</div>
-
-<!-- INFORMAN -->
-<div id="informan" class="screen">
-  <div class="hdr"><div><h1>🔍 Informan</h1><div class="hdr-sub" id="infName"></div></div><div><span class="pts" id="infPoin">0 ⭐</span><button class="btn-sm btn-out" onclick="switchTo('mapView')">🗺️</button><button class="btn-sm btn-out" onclick="doLogout()">Keluar</button></div></div>
-  <div class="cont">
-    <button class="btn-big btn-o" onclick="switchTo('laporForm')">📸 Lapor PKL</button>
-    <button class="btn-big btn-w" onclick="switchTo('histori')">📋 Riwayat Laporan</button>
-    <button class="btn-big btn-w" onclick="switchTo('mapView')">🗺️ Peta</button>
-  </div>
-</div>
-
-<!-- LAPOR FORM -->
-<div id="laporForm" class="screen">
-  <div class="hdr"><div><h1>📸 Lapor PKL</h1></div><button class="btn-sm btn-out" onclick="switchTo('informan')">← Batal</button></div>
-  <div class="cont">
-    <div class="card">
-      <div class="fg"><label>Foto (max 5)</label><label class="up-btn">📷 Buka Kamera <input type="file" id="laporFoto" accept="image/*" capture="environment" multiple onchange="previewLapor()"></label><div id="laporPrev" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div></div>
-      <div class="fg"><label>Deskripsi</label><textarea id="laporDesc" placeholder="Nama pedagang, jualan apa, lokasi..."></textarea></div>
-      <div class="fg"><label>Kategori</label><select id="laporKat"><option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option><option value="3">🥬 Sayur</option><option value="4">👗 Pakaian</option><option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option><option value="7">📍 Lainnya</option></select></div>
-      <div id="laporStat" style="text-align:center;padding:8px;font-size:13px;color:#FF6B35;display:none;"></div>
-      <button class="btn-big btn-o" onclick="submitLaporan()">🚀 Kirim</button>
-    </div>
-  </div>
-</div>
-
-<!-- HISTORI -->
-<div id="histori" class="screen">
-  <div class="hdr"><div><h1>📋 Riwayat</h1></div><button class="btn-sm btn-out" onclick="switchTo('informan')">← Kembali</button></div>
-  <div class="cont" id="historiList"><p style="text-align:center;color:#888;padding:20px;">Memuat...</p></div>
-</div>
-
-<!-- PEDAGANG -->
-<div id="pedagang" class="screen">
-  <div class="hdr"><div><h1>🛒 Pedagang</h1><div class="hdr-sub" id="pedName"></div></div><div><button class="btn-sm btn-out" onclick="switchTo('mapView')">🗺️</button><button class="btn-sm btn-out" onclick="doLogout()">Keluar</button></div></div>
-  <div class="cont">
-    <button class="btn-big btn-o" onclick="loadLaporanSekitar()">🔍 Lihat Laporan Sekitar</button>
-    <button class="btn-big btn-w" onclick="switchTo('daganganSaya')">📦 Dagangan Saya</button>
-    <button class="btn-big btn-w" onclick="switchTo('mapView')">🗺️ Peta</button>
-  </div>
-</div>
-
-<!-- LAPORAN SEKITAR -->
-<div id="laporanSekitar" class="screen">
-  <div class="hdr"><div><h1>🔍 Laporan Sekitar</h1></div><button class="btn-sm btn-out" onclick="switchTo('pedagang')">← Kembali</button></div>
-  <div class="cont" id="laporanSekitarList"><p style="text-align:center;color:#888;">Memuat...</p></div>
-</div>
-
-<!-- DAGANGAN -->
-<div id="daganganSaya" class="screen">
-  <div class="hdr"><div><h1>📦 Dagangan</h1></div><button class="btn-sm btn-out" onclick="switchTo('pedagang')">← Kembali</button></div>
-  <div class="cont">
-    <button class="btn-big btn-o" onclick="tambahProduk()">+ Tambah Produk</button>
-    <div id="daganganList"><p style="text-align:center;color:#888;">Memuat...</p></div>
-  </div>
-</div>
-
-<!-- MAP -->
-<div id="mapView" class="screen">
-  <div class="hdr"><div><h1>🗺️ Peta</h1></div><div><button class="btn-sm btn-out" onclick="centerMyLoc()">🎯</button><button class="btn-sm btn-out" onclick="goBack()">←</button></div></div>
-  <div class="tb"><button class="btn-sm btn-o" onclick="refreshMap()">🔄</button><button class="btn-sm btn-w" onclick="goBack()">Kembali</button></div>
-  <div class="map-wrap" id="mapContainer"></div>
-</div>
-
-<script src="lib/supabase.min.js"></script>
-<script src="lib/leaflet.js"></script>
-<script>
-// ===== INIT =====
-var db, user, profile, myMap, markerLayer, prevScreen;
-var SUPABASE_URL = 'https://dnpbyfpbbwkgsfwmzlva.supabase.co';
-var SUPABASE_KEY = 'sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
-
-function init() {
-  if (typeof supabase !== 'undefined') {
-    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    checkSession();
-  } else {
-    setTimeout(init, 500);
-  }
-}
-
-async function checkSession() {
-  try {
-    var r = await db.auth.getSession();
-    if (r.data.session) {
-      user = r.data.session.user;
-      var p = await db.from('profiles').select('*').eq('id', user.id).single();
-      if (p.data) { profile = p.data; switchTo(profile.role); }
-    }
-  } catch(e) {}
-}
-
-function switchTo(id) {
-  prevScreen = document.querySelector('.screen.active') ? document.querySelector('.screen.active').id : 'login';
-  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
-  var el = document.getElementById(id);
-  if (!el) { alert('Screen "'+id+'" not found!'); return; }
-  el.classList.add('active');
-  if (id === 'admin') { document.getElementById('adminName').textContent = profile ? profile.nama : ''; loadAdmin(); }
-  if (id === 'informan') { document.getElementById('infName').textContent = profile ? profile.nama : ''; document.getElementById('infPoin').textContent = (profile ? profile.poin || 0 : 0) + ' ⭐'; }
-  if (id === 'pedagang') { document.getElementById('pedName').textContent = profile ? profile.nama : ''; }
-  if (id === 'histori') loadHistori();
-  if (id === 'daganganSaya') loadDagangan();
-  if (id === 'mapView') initMap();
-}
-
-function goBack() {
-  if (prevScreen && document.getElementById(prevScreen)) switchTo(prevScreen);
-  else switchTo(profile ? profile.role : 'login');
-}
-
-// Helper: open Google Maps
-function openMap(lat, lng) {
-  var url = 'https://www.google.com/maps?q=' + lat + ',' + lng;
-  try { window.open(url, '_system'); } catch(e) { location.href = url; }
-}
-
-// Helper: open image full screen
-function openImage(url) {
-  try { window.open(url, '_system'); } catch(e) { location.href = url; }
-}
-
-// ===== AUTH =====
-async function doLogin() {
-  if (!db) { alert('Menghubungkan server...'); return; }
-  var e = document.getElementById('loginEmail').value.trim();
-  var p = document.getElementById('loginPassword').value.trim();
-  if (!e || !p) { alert('Isi email dan password'); return; }
-  var r = await db.auth.signInWithPassword({ email: e, password: p });
-  if (r.error) { alert('Gagal: '+r.error.message); return; }
-  user = r.data.user;
-  var prof = await db.from('profiles').select('*').eq('id', user.id).single();
-  if (!prof.data) { alert('Profile tidak ditemukan. Hubungi admin.'); return; }
-  profile = prof.data;
-  switchTo(profile.role);
-}
-
-async function doRegister() {
-  var n = document.getElementById('regNama').value.trim();
-  var e = document.getElementById('regEmail').value.trim();
-  var p = document.getElementById('regPassword').value.trim();
-  var rl = document.getElementById('regRole').value;
-  if (!n || !e || !p) { alert('Isi semua field'); return; }
-  if (p.length < 6) { alert('Password minimal 6 karakter'); return; }
-  var r = await db.auth.signUp({ email: e, password: p });
-  if (r.error) { alert('Gagal: '+r.error.message); return; }
-  await db.from('profiles').update({ nama: n, role: rl }).eq('id', r.data.user.id);
-  alert('✅ Registrasi berhasil! Silakan login.'); switchTo('login');
-}
-
-async function doLogout() { await db.auth.signOut(); user = null; profile = null; switchTo('login'); }
-
-// ===== ADMIN =====
-async function loadAdmin() {
-  var l = await db.from('lokasi').select('id',{count:'exact',head:true});
-  var la = await db.from('lokasi').select('id',{count:'exact',head:true}).eq('status','aktif');
-  var u = await db.from('profiles').select('id',{count:'exact',head:true});
-  document.getElementById('s1').textContent = l.count||0;
-  document.getElementById('s2').textContent = u.count||0;
-  document.getElementById('s3').textContent = la.count||0;
-  document.getElementById('s4').textContent = la.count||0;
-  
-  var d = await db.from('lokasi').select('*').order('created_at',{ascending:false}).limit(20);
-  var userIds = []; if (d.data) d.data.forEach(function(loc) { userIds.push(loc.user_id); });
-  var nameMap = {};
-  if (userIds.length > 0) {
-    var np = await db.from('profiles').select('id,nama').in('id', userIds);
-    if (np.data) np.data.forEach(function(p) { nameMap[p.id] = p.nama || '?'; });
-  }
-  
-  var h = '';
-  if (d.data && d.data.length > 0) {
-    d.data.forEach(function(loc) {
-      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
-      var f = '';
-      if (loc.foto_url && Array.isArray(loc.foto_url)) {
-        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="openImage(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" style="width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer;">'; });
-      }
-      h += '<div class="row"><div><b>'+(loc.deskripsi||'Tanpa nama')+'</b> <small>'+nameMap[loc.user_id]+'</small><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+' '+b+'</small>'+f+'</div>';
-      h += '<div style="display:flex;gap:3px;">';
-      if (loc.status==='aktif') h += '<button class="btn-sm btn-g" onclick="verify('+loc.id+')">✅</button>';
-      if (loc.status==='aktif') h += '<button class="btn-sm btn-r" onclick="reject('+loc.id+')">❌</button>';
-      h += '<button class="btn-sm btn-r" onclick="del('+loc.id+')">🗑️</button></div></div>';
-    });
-  } else h = '<p style="text-align:center;color:#888;padding:20px;">Belum ada lokasi</p>';
-  document.getElementById('adminList').innerHTML = h;
-}
-async function verify(id) { await db.from('lokasi').update({status:'diverifikasi'}).eq('id',id); var l=await db.from('lokasi').select('user_id').eq('id',id).single(); if(l.data) await db.rpc('increment_poin',{uid:l.data.user_id,amount:10}); loadAdmin(); }
-async function reject(id) { await db.from('lokasi').update({status:'ditolak'}).eq('id',id); loadAdmin(); }
-async function del(id) { if(confirm('Hapus?')) { await db.from('lokasi').delete().eq('id',id); loadAdmin(); } }
-
-// ===== INFORMAN =====
-function previewLapor() {
-  var pv = document.getElementById('laporPrev'); pv.innerHTML = '';
-  var files = document.getElementById('laporFoto').files;
-  for (var i = 0; i < Math.min(files.length||0, 5); i++) {
-    (function(f) {
-      var fr = new FileReader();
-      fr.onload = function(e) { var img = document.createElement('img'); img.src = e.target.result; img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:3px;'; pv.appendChild(img); };
-      fr.readAsDataURL(f);
-    })(files[i]);
-  }
-}
-
-async function submitLaporan() {
-  var desc = document.getElementById('laporDesc').value.trim();
-  var kat = document.getElementById('laporKat').value;
-  var files = document.getElementById('laporFoto').files;
-  var st = document.getElementById('laporStat'); st.style.display='block';
-  
-  if (!navigator.geolocation) { alert('GPS tidak didukung'); switchTo('informan'); return; }
-  
-  st.textContent = '📡 Mengambil lokasi...';
-  navigator.geolocation.getCurrentPosition(async function(pos) {
-    st.textContent = '📤 Upload foto...';
-    var fotoUrls = [];
-    var fotoErrors = 0;
-    if (files && files.length > 0) {
-      for (var i = 0; i < Math.min(files.length, 5); i++) {
-        var f = files[i]; var fn = user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
-        var up = await db.storage.from('pkl-photos').upload(fn, f, {contentType:f.type,upsert:false});
-        if (up.error) { fotoErrors++; fotoUrls.push('ERROR:'+up.error.message); }
-        else {
-          var u = db.storage.from('pkl-photos').getPublicUrl(fn);
-          if (u.data && u.data.publicUrl) fotoUrls.push(u.data.publicUrl);
-        }
-      }
-    }
-    st.textContent = '💾 Menyimpan...';
-    var ld = {user_id:user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,deskripsi:desc||'PKL ditemukan',kategori_id:parseInt(kat),status:'aktif'};
-    if (fotoUrls.length > 0) ld.foto_url = fotoUrls;
-    var r = await db.from('lokasi').insert(ld);
-    st.style.display='none';
-    if (r.error) { alert('❌ '+r.error.message); }
-    else {
-      var msg = '✅ Laporan terkirim!';
-      if (fotoUrls.length > 0) {
-        var ok = fotoUrls.filter(function(u) { return !u.startsWith('ERROR:'); });
-        var errs = fotoUrls.filter(function(u) { return u.startsWith('ERROR:'); });
-        if (ok.length > 0) msg += '\n📸 '+ok.length+' foto berhasil';
-        if (errs.length > 0) msg += '\n❌ Gagal: '+errs[0].replace('ERROR:','');
-      }
-      msg += '\n+5 poin';
-      alert(msg);
-      await db.rpc('increment_poin',{uid:user.id,amount:5});
-      document.getElementById('laporDesc').value=''; document.getElementById('laporKat').value='7';
-      document.getElementById('laporFoto').value=''; document.getElementById('laporPrev').innerHTML='';
-    }
-    switchTo('informan');
-  }, function(err) { st.style.display='none'; alert('❌ '+err.message); switchTo('informan'); }, {enableHighAccuracy:true});
-}
-
-async function loadHistori() {
-  var d = await db.from('lokasi').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-  var h = '<h3>📋 Riwayat Laporan</h3>';
-  if (d.data && d.data.length>0) {
-    d.data.forEach(function(loc) {
-      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
-      var f = '';
-      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
-      h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
-      h += '<div style="font-size:11px;color:#888;">'+new Date(loc.created_at).toLocaleString('id-ID')+'</div>';
-      if (f) h += '<div>'+f+'</div></div>';
-    });
-  } else h += '<p style="text-align:center;color:#888;">Belum ada laporan</p>';
-  document.getElementById('historiList').innerHTML = h;
-}
-
-// ===== PEDAGANG =====
-async function loadLaporanSekitar() {
-  switchTo('laporanSekitar');
-  document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;">Memuat...</p>';
-  
-  var d = await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false}).limit(20);
-  var userIds = []; if (d.data) d.data.forEach(function(loc) { userIds.push(loc.user_id); });
-  var nameMap = {};
-  if (userIds.length>0) { var np = await db.from('profiles').select('id,nama').in('id',userIds); if (np.data) np.data.forEach(function(p) { nameMap[p.id]=p.nama||'?'; }); }
-  
-  var h = '<h3>📋 Laporan PKL Sekitar</h3>';
-  if (d.data && d.data.length>0) {
-    d.data.forEach(function(loc) {
-      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':'y')+'">'+loc.status+'</span>';
-      var f = '';
-      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
-      h += '<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b> '+b;
-      h += '<div style="font-size:11px;color:#888;">👤 '+(nameMap[loc.user_id]||'?')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
-      if (f) h += '<div>'+f+'</div>';
-      h += '<div style="margin-top:6px;display:flex;gap:4px;">';
-      h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+(nameMap[loc.user_id]||'?')+'\')">⭐ Beri Poin</button>';
-      h += '<button class="btn-sm btn-o" onclick="openMap('+loc.latitude+','+loc.longitude+')">🗺️ Maps</button>';
-      h += '</div></div>';
-    });
-  } else h += '<p style="text-align:center;color:#888;">Belum ada laporan</p>';
-  document.getElementById('laporanSekitarList').innerHTML = h;
-}
-
-function beriPoin(uid, nama) {
-  var j = prompt('Poin untuk '+(nama||'informan')+'?');
-  if (!j || isNaN(j) || parseInt(j)<1) return;
-  db.rpc('increment_poin',{uid:uid,amount:parseInt(j)}).then(function() { alert('✅ Poin diberikan!'); });
-}
-
-async function loadDagangan() {
-  var d = await db.from('produk').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
-  var h = '<h3>📦 Dagangan Saya</h3>';
-  if (d.data && d.data.length>0) {
-    d.data.forEach(function(p) {
-      h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>📦 '+p.nama_produk+'</b><span style="color:#FF6B35;">'+(p.harga||'')+'</span></div>';
-      h += '<button class="btn-sm btn-r" onclick="hapusProduk('+p.id+')">🗑️ Hapus</button></div>';
-    });
-  } else h += '<p style="text-align:center;color:#888;">Belum ada produk</p>';
-  document.getElementById('daganganList').innerHTML = h;
-}
-
-function tambahProduk() {
-  var n = prompt('Nama produk:'); if (!n) return;
-  var h = prompt('Harga:'); db.from('produk').insert({user_id:user.id,nama_produk:n,harga:h||''}).then(function(r) {
-    if (r.error) alert('Gagal: '+r.error.message); else { alert('✅ Ditambahkan!'); loadDagangan(); }
-  });
-}
-
-async function hapusProduk(id) { if (confirm('Hapus?')) { await db.from('produk').delete().eq('id',id); loadDagangan(); } }
-
-// ===== MAP =====
-function initMap() {
-  setTimeout(function() {
-    var c = document.getElementById('mapContainer');
-    if (myMap) { myMap.invalidateSize(); loadMarkers(); return; }
-    L.Icon.Default.imagePath = 'lib/images/';
-    myMap = L.map('mapContainer').setView([-6.2,106.8],13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(myMap);
-    markerLayer = L.layerGroup().addTo(myMap); loadMarkers();
-  }, 300);
-}
-async function loadMarkers() {
-  if (!myMap||!markerLayer) return; markerLayer.clearLayers();
-  var d = await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false});
-  if (d.data && d.data.length>0) {
-    var b = [];
-    d.data.forEach(function(loc) {
-      var pc = '<b>📍 '+(loc.deskripsi||'PKL')+'</b><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small>';
-      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length>0) pc += '<br><img src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px;margin-top:3px;">';
-      L.marker([loc.latitude,loc.longitude]).addTo(markerLayer).bindPopup(pc); b.push([loc.latitude,loc.longitude]);
-    });
-    myMap.fitBounds(b,{padding:[30,30]});
-  }
-}
-function refreshMap() { loadMarkers(); }
-function centerMyLoc() {
-  if (!myMap) return;
-  if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function(pos) {
-    myMap.setView([pos.coords.latitude,pos.coords.longitude],15);
-    L.circleMarker([pos.coords.latitude,pos.coords.longitude],{radius:8,color:'#FF6B35',fillColor:'#FF6B35',fillOpacity:0.5}).addTo(markerLayer).bindPopup('📍 Posisi kamu');
-  });
-}
-
-document.addEventListener('DOMContentLoaded', init);
-</script>
-</body>
-</html>
+     1|<!DOCTYPE html>
+     2|<html lang="id">
+     3|<head>
+     4|  <meta charset="UTF-8">
+     5|  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+     6|  <title>Lokasi Sekitar</title>
+     7|  <link rel="stylesheet" href="lib/leaflet.css" />
+     8|  <style>
+     9|    * { margin:0; padding:0; box-sizing:border-box; }
+    10|    body { font-family: sans-serif; background:#f5f5f5; min-height:100vh; }
+    11|    .screen { display:none; min-height:100vh; flex-direction:column; }
+    12|    .screen.active { display:flex; }
+    13|    .hdr { background:linear-gradient(135deg,#FF6B35,#F7931E); color:white; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
+    14|    .hdr h1 { font-size:15px; }
+    15|    .hdr-sub { font-size:10px; opacity:0.8; }
+    16|    .btn-sm { padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer; border:none; }
+    17|    .btn-out { background:rgba(255,255,255,0.2); color:white; }
+    18|    .btn-o { background:#FF6B35; color:white; }
+    19|    .btn-w { background:white; color:#333; border:1px solid #ddd; }
+    20|    .btn-g { background:#28a745; color:white; }
+    21|    .btn-r { background:#dc3545; color:white; }
+    22|    .cont { flex:1; padding:12px; max-width:600px; width:100%; margin:0 auto; overflow-y:auto; }
+    23|    .card { background:white; border-radius:10px; padding:14px; box-shadow:0 1px 6px rgba(0,0,0,0.05); margin-bottom:10px; }
+    24|    .fg { margin-bottom:10px; }
+    25|    .fg label { display:block; font-size:12px; color:#666; margin-bottom:3px; font-weight:600; }
+    26|    .fg input, .fg select, .fg textarea { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:13px; }
+    27|    textarea { resize:vertical; min-height:70px; }
+    28|    .btn-big { width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; margin-bottom:8px; }
+    29|    .stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+    30|    .stat { background:white; border-radius:8px; padding:12px; text-align:center; }
+    31|    .stat-num { font-size:20px; font-weight:700; color:#FF6B35; }
+    32|    .stat-lbl { font-size:10px; color:#888; }
+    33|    .link { text-align:center; margin-top:8px; font-size:12px; color:#FF6B35; cursor:pointer; }
+    34|    .badge { padding:2px 6px; border-radius:6px; font-size:9px; font-weight:600; }
+    35|    .bg-y { background:#fff3cd; color:#856404; }
+    36|    .bg-g { background:#d4edda; color:#155724; }
+    37|    .bg-r { background:#f8d7da; color:#721C24; }
+    38|    .row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px solid #eee; font-size:12px; gap:8px; }
+    39|    .map-wrap { flex:1; min-height:300px; }
+    40|    .tb { display:flex; gap:4px; padding:6px; background:white; border-bottom:1px solid #eee; }
+    41|    .foto-thumb { width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer; }
+    42|    .up-btn { display:inline-block; padding:8px 16px; background:#f0f0f0; border-radius:6px; cursor:pointer; font-size:12px; }
+    43|    .up-btn input { display:none; }
+    44|    .pts { background:#FF6B35; color:white; border-radius:20px; padding:4px 12px; font-size:13px; font-weight:700; display:inline-block; }
+    45|  </style>
+    46|</head>
+    47|<body>
+    48|
+    49|<!-- LOGIN -->
+    50|<div id="login" class="screen active">
+    51|  <div class="cont" style="justify-content:center;">
+    52|    <div class="card">
+    53|      <h2 style="text-align:center;color:#FF6B35;">📍 Lokasi Sekitar</h2>
+    54|      <p style="text-align:center;color:#888;font-size:10px;">v1.4 — Stable</p>
+    55|      <div class="fg"><input id="loginEmail" type="email" placeholder="Email"></div>
+    56|      <div class="fg"><input id="loginPassword" type="password" placeholder="Password"></div>
+    57|      <button class="btn-big btn-o" onclick="doLogin()">Masuk</button>
+    58|      <div class="link" onclick="switchTo('register')">Belum punya akun? Daftar</div>
+    59|    </div>
+    60|  </div>
+    61|</div>
+    62|
+    63|<!-- REGISTER -->
+    64|<div id="register" class="screen">
+    65|  <div class="cont" style="justify-content:center;">
+    66|    <div class="card">
+    67|      <h2 style="text-align:center;color:#FF6B35;">📝 Daftar</h2>
+    68|      <div class="fg"><input id="regNama" placeholder="Nama"></div>
+    69|      <div class="fg"><input id="regEmail" type="email" placeholder="Email"></div>
+    70|      <div class="fg"><input id="regPassword" type="password" placeholder="Password (min 6)"></div>
+    71|      <div class="fg"><select id="regRole"><option value="informan">🔍 Informan</option><option value="pedagang">🛒 Pedagang</option></select></div>
+    72|      <button class="btn-big btn-o" onclick="doRegister()">Daftar</button>
+    73|      <div class="link" onclick="switchTo('login')">Sudah punya akun? Masuk</div>
+    74|    </div>
+    75|  </div>
+    76|</div>
+    77|
+    78|<!-- ADMIN -->
+    79|<div id="admin" class="screen">
+    80|  <div class="hdr"><div><h1>🛡️ Admin</h1><div class="hdr-sub" id="adminName"></div></div><div><button class="btn-sm btn-out" onclick="switchTo('mapView')">🗺️</button><button class="btn-sm btn-out" onclick="doLogout()">Keluar</button></div></div>
+    81|  <div class="cont">
+    82|    <div class="stats"><div class="stat"><div class="stat-num" id="s1">-</div><div class="stat-lbl">Lokasi</div></div><div class="stat"><div class="stat-num" id="s2">-</div><div class="stat-lbl">User</div></div><div class="stat"><div class="stat-num" id="s3">-</div><div class="stat-lbl">Aktif</div></div><div class="stat"><div class="stat-num" id="s4">-</div><div class="stat-lbl">Pending</div></div></div>
+    83|    <div class="card"><h3 style="font-size:13px;margin-bottom:6px;">📋 Verifikasi</h3><div id="adminList"></div></div>
+    84|  </div>
+    85|</div>
+    86|
+    87|<!-- INFORMAN -->
+    88|<div id="informan" class="screen">
+    89|  <div class="hdr"><div><h1>🔍 Informan</h1><div class="hdr-sub" id="infName"></div></div><div><span class="pts" id="infPoin">0 ⭐</span><button class="btn-sm btn-out" onclick="switchTo('mapView')">🗺️</button><button class="btn-sm btn-out" onclick="doLogout()">Keluar</button></div></div>
+    90|  <div class="cont">
+    91|    <button class="btn-big btn-o" onclick="switchTo('laporForm')">📸 Lapor PKL</button>
+    92|    <button class="btn-big btn-w" onclick="switchTo('histori')">📋 Riwayat Laporan</button>
+    93|    <button class="btn-big btn-w" onclick="switchTo('mapView')">🗺️ Peta</button>
+    94|  </div>
+    95|</div>
+    96|
+    97|<!-- LAPOR FORM -->
+    98|<div id="laporForm" class="screen">
+    99|  <div class="hdr"><div><h1>📸 Lapor PKL</h1></div><button class="btn-sm btn-out" onclick="switchTo('informan')">← Batal</button></div>
+   100|  <div class="cont">
+   101|    <div class="card">
+   102|      <div class="fg"><label>Foto (max 5)</label><label class="up-btn">📷 Buka Kamera <input type="file" id="laporFoto" accept="image/*" capture="environment" multiple onchange="previewLapor()"></label><div id="laporPrev" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div></div>
+   103|      <div class="fg"><label>Deskripsi</label><textarea id="laporDesc" placeholder="Nama pedagang, jualan apa, lokasi..."></textarea></div>
+   104|      <div class="fg"><label>Kategori</label><select id="laporKat"><option value="1">🍜 Makanan</option><option value="2">🧋 Minuman</option><option value="3">🥬 Sayur</option><option value="4">👗 Pakaian</option><option value="5">💍 Aksesoris</option><option value="6">📱 Elektronik</option><option value="7">📍 Lainnya</option></select></div>
+   105|      <div id="laporStat" style="text-align:center;padding:8px;font-size:13px;color:#FF6B35;display:none;"></div>
+   106|      <button class="btn-big btn-o" onclick="submitLaporan()">🚀 Kirim</button>
+   107|    </div>
+   108|  </div>
+   109|</div>
+   110|
+   111|<!-- HISTORI -->
+   112|<div id="histori" class="screen">
+   113|  <div class="hdr"><div><h1>📋 Riwayat</h1></div><button class="btn-sm btn-out" onclick="switchTo('informan')">← Kembali</button></div>
+   114|  <div class="cont" id="historiList"><p style="text-align:center;color:#888;padding:20px;">Memuat...</p></div>
+   115|</div>
+   116|
+   117|<!-- PEDAGANG -->
+   118|<div id="pedagang" class="screen">
+   119|  <div class="hdr"><div><h1>🛒 Pedagang</h1><div class="hdr-sub" id="pedName"></div></div><div><button class="btn-sm btn-out" onclick="switchTo('mapView')">🗺️</button><button class="btn-sm btn-out" onclick="doLogout()">Keluar</button></div></div>
+   120|  <div class="cont">
+   121|    <button class="btn-big btn-o" onclick="loadLaporanSekitar()">🔍 Lihat Laporan Sekitar</button>
+   122|    <button class="btn-big btn-w" onclick="switchTo('daganganSaya')">📦 Dagangan Saya</button>
+   123|    <button class="btn-big btn-w" onclick="switchTo('mapView')">🗺️ Peta</button>
+   124|  </div>
+   125|</div>
+   126|
+   127|<!-- LAPORAN SEKITAR -->
+   128|<div id="laporanSekitar" class="screen">
+   129|  <div class="hdr"><div><h1>🔍 Laporan Sekitar</h1></div><button class="btn-sm btn-out" onclick="switchTo('pedagang')">← Kembali</button></div>
+   130|  <div class="cont" id="laporanSekitarList"><p style="text-align:center;color:#888;">Memuat...</p></div>
+   131|</div>
+   132|
+   133|<!-- DAGANGAN -->
+   134|<div id="daganganSaya" class="screen">
+   135|  <div class="hdr"><div><h1>📦 Dagangan</h1></div><button class="btn-sm btn-out" onclick="switchTo('pedagang')">← Kembali</button></div>
+   136|  <div class="cont">
+   137|    <button class="btn-big btn-o" onclick="tambahProduk()">+ Tambah Produk</button>
+   138|    <div id="daganganList"><p style="text-align:center;color:#888;">Memuat...</p></div>
+   139|  </div>
+   140|</div>
+   141|
+   142|<!-- MAP -->
+   143|<div id="mapView" class="screen">
+   144|  <div class="hdr"><div><h1>🗺️ Peta</h1></div><div><button class="btn-sm btn-out" onclick="centerMyLoc()">🎯</button><button class="btn-sm btn-out" onclick="goBack()">←</button></div></div>
+   145|  <div class="tb"><button class="btn-sm btn-o" onclick="refreshMap()">🔄</button><button class="btn-sm btn-w" onclick="goBack()">Kembali</button></div>
+   146|  <div class="map-wrap" id="mapContainer"></div>
+   147|</div>
+   148|
+   149|<script src="lib/supabase.min.js"></script>
+   150|<script src="lib/leaflet.js"></script>
+   151|<script>
+   152|// ===== INIT =====
+   153|var db, user, profile, myMap, markerLayer, prevScreen;
+   154|var SUPABASE_URL = 'https://dnpbyfpbbwkgsfwmzlva.supabase.co';
+   155|var SUPABASE_KEY = 'sb_publishable_XV71tP1dBZMyHg30p3aWIw_Phv5hbay';
+   156|
+   157|function init() {
+   158|  if (typeof supabase !== 'undefined') {
+   159|    db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+   160|    checkSession();
+   161|  } else {
+   162|    setTimeout(init, 500);
+   163|  }
+   164|}
+   165|
+   166|async function checkSession() {
+   167|  try {
+   168|    var r = await db.auth.getSession();
+   169|    if (r.data.session) {
+   170|      user = r.data.session.user;
+   171|      var p = await db.from('profiles').select('*').eq('id', user.id).single();
+   172|      if (p.data) { profile = p.data; switchTo(profile.role); }
+   173|    }
+   174|  } catch(e) {}
+   175|}
+   176|
+   177|function switchTo(id) {
+   178|  prevScreen = document.querySelector('.screen.active') ? document.querySelector('.screen.active').id : 'login';
+   179|  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+   180|  var el = document.getElementById(id);
+   181|  if (!el) { alert('Screen "'+id+'" not found!'); return; }
+   182|  el.classList.add('active');
+   183|  if (id === 'admin') { document.getElementById('adminName').textContent = profile ? profile.nama : ''; loadAdmin(); }
+   184|  if (id === 'informan') { document.getElementById('infName').textContent = profile ? profile.nama : ''; document.getElementById('infPoin').textContent = (profile ? profile.poin || 0 : 0) + ' ⭐'; }
+   185|  if (id === 'pedagang') { document.getElementById('pedName').textContent = profile ? profile.nama : ''; }
+   186|  if (id === 'histori') loadHistori();
+   187|  if (id === 'daganganSaya') loadDagangan();
+   188|  if (id === 'mapView') initMap();
+   189|}
+   190|
+   191|function goBack() {
+   192|  if (prevScreen && document.getElementById(prevScreen)) switchTo(prevScreen);
+   193|  else switchTo(profile ? profile.role : 'login');
+   194|}
+   195|
+   196|// Helper: open Google Maps
+   197|function openMap(lat, lng) {
+   198|  var url = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+   199|  try { window.open(url, '_system'); } catch(e) { location.href = url; }
+   200|}
+   201|
+   202|// Helper: open image full screen
+   203|function openImage(url) {
+   204|  try { window.open(url, '_system'); } catch(e) { location.href = url; }
+   205|}
+   206|
+   207|// ===== AUTH =====
+   208|async function doLogin() {
+   209|  if (!db) { alert('Menghubungkan server...'); return; }
+   210|  var e = document.getElementById('loginEmail').value.trim();
+   211|  var p = document.getElementById('loginPassword').value.trim();
+   212|  if (!e || !p) { alert('Isi email dan password'); return; }
+   213|  var r = await db.auth.signInWithPassword({ email: e, password: p });
+   214|  if (r.error) { alert('Gagal: '+r.error.message); return; }
+   215|  user = r.data.user;
+   216|  var prof = await db.from('profiles').select('*').eq('id', user.id).single();
+   217|  if (!prof.data) { alert('Profile tidak ditemukan. Hubungi admin.'); return; }
+   218|  profile = prof.data;
+   219|  switchTo(profile.role);
+   220|}
+   221|
+   222|async function doRegister() {
+   223|  var n = document.getElementById('regNama').value.trim();
+   224|  var e = document.getElementById('regEmail').value.trim();
+   225|  var p = document.getElementById('regPassword').value.trim();
+   226|  var rl = document.getElementById('regRole').value;
+   227|  if (!n || !e || !p) { alert('Isi semua field'); return; }
+   228|  if (p.length < 6) { alert('Password minimal 6 karakter'); return; }
+   229|  var r = await db.auth.signUp({ email: e, password: p });
+   230|  if (r.error) { alert('Gagal: '+r.error.message); return; }
+   231|  await db.from('profiles').update({ nama: n, role: rl }).eq('id', r.data.user.id);
+   232|  alert('✅ Registrasi berhasil! Silakan login.'); switchTo('login');
+   233|}
+   234|
+   235|async function doLogout() { await db.auth.signOut(); user = null; profile = null; switchTo('login'); }
+   236|
+   237|// ===== ADMIN =====
+   238|async function loadAdmin() {
+   239|  var l = await db.from('lokasi').select('id',{count:'exact',head:true});
+   240|  var la = await db.from('lokasi').select('id',{count:'exact',head:true}).eq('status','aktif');
+   241|  var u = await db.from('profiles').select('id',{count:'exact',head:true});
+   242|  document.getElementById('s1').textContent = l.count||0;
+   243|  document.getElementById('s2').textContent = u.count||0;
+   244|  document.getElementById('s3').textContent = la.count||0;
+   245|  document.getElementById('s4').textContent = la.count||0;
+   246|  
+   247|  var d = await db.from('lokasi').select('*').order('created_at',{ascending:false}).limit(20);
+   248|  var userIds = []; if (d.data) d.data.forEach(function(loc) { userIds.push(loc.user_id); });
+   249|  var nameMap = {};
+   250|  if (userIds.length > 0) {
+   251|    var np = await db.from('profiles').select('id,nama').in('id', userIds);
+   252|    if (np.data) np.data.forEach(function(p) { nameMap[p.id] = p.nama || '?'; });
+   253|  }
+   254|  
+   255|  var h = '';
+   256|  if (d.data && d.data.length > 0) {
+   257|    d.data.forEach(function(loc) {
+   258|      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
+   259|      var f = '';
+   260|      if (loc.foto_url && Array.isArray(loc.foto_url)) {
+   261|        loc.foto_url.forEach(function(u) { f += '<img loading="lazy" src="'+u+'" class="foto-thumb" onclick="openImage(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" style="width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer;">'; });
+   262|      }
+   263|      h += '<div class="row"><div><b>'+(loc.deskripsi||'Tanpa nama')+'</b> <small>'+nameMap[loc.user_id]+'</small><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+' '+b+'</small>'+f+'</div>';
+   264|      h += '<div style="display:flex;gap:3px;">';
+   265|      if (loc.status==='aktif') h += '<button class="btn-sm btn-g" onclick="verify('+loc.id+')">✅</button>';
+   266|      if (loc.status==='aktif') h += '<button class="btn-sm btn-r" onclick="reject('+loc.id+')">❌</button>';
+   267|      h += '<button class="btn-sm btn-r" onclick="del('+loc.id+')">🗑️</button></div></div>';
+   268|    });
+   269|  } else h = '<p style="text-align:center;color:#888;padding:20px;">Belum ada lokasi</p>';
+   270|  document.getElementById('adminList').innerHTML = h;
+   271|}
+   272|async function verify(id) { await db.from('lokasi').update({status:'diverifikasi'}).eq('id',id); var l=await db.from('lokasi').select('user_id').eq('id',id).single(); if(l.data) await db.rpc('increment_poin',{uid:l.data.user_id,amount:10}); loadAdmin(); }
+   273|async function reject(id) { await db.from('lokasi').update({status:'ditolak'}).eq('id',id); loadAdmin(); }
+   274|async function del(id) { if(confirm('Hapus?')) { await db.from('lokasi').delete().eq('id',id); loadAdmin(); } }
+   275|
+   276|// ===== INFORMAN =====
+   277|function previewLapor() {
+   278|  var pv = document.getElementById('laporPrev'); pv.innerHTML = '';
+   279|  var files = document.getElementById('laporFoto').files;
+   280|  for (var i = 0; i < Math.min(files.length||0, 5); i++) {
+   281|    (function(f) {
+   282|      var fr = new FileReader();
+   283|      fr.onload = function(e) { var img = document.createElement('img'); img.src = e.target.result; img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:3px;'; pv.appendChild(img); };
+   284|      fr.readAsDataURL(f);
+   285|    })(files[i]);
+   286|  }
+   287|}
+   288|
+   289|async function submitLaporan() {
+   290|  var desc = document.getElementById('laporDesc').value.trim();
+   291|  var kat = document.getElementById('laporKat').value;
+   292|  var files = document.getElementById('laporFoto').files;
+   293|  var st = document.getElementById('laporStat'); st.style.display='block';
+   294|  
+   295|  if (!navigator.geolocation) { alert('GPS tidak didukung'); switchTo('informan'); return; }
+   296|  
+   297|  st.textContent = '📡 Mengambil lokasi...';
+   298|  navigator.geolocation.getCurrentPosition(async function(pos) {
+   299|    st.textContent = '📤 Upload foto...';
+   300|    var fotoUrls = [];
+   301|    var fotoErrors = 0;
+   302|    if (files && files.length > 0) {
+   303|      for (var i = 0; i < Math.min(files.length, 5); i++) {
+   304|        var f = files[i]; var fn = user.id+'/'+Date.now()+'_'+i+'.'+(f.name.split('.').pop()||'jpg');
+   305|        var up = await db.storage.from('pkl-photos').upload(fn, f, {contentType:f.type,upsert:false});
+   306|        if (up.error) { fotoErrors++; fotoUrls.push('ERROR:'+up.error.message); }
+   307|        else {
+   308|          var u = db.storage.from('pkl-photos').getPublicUrl(fn);
+   309|          if (u.data && u.data.publicUrl) fotoUrls.push(u.data.publicUrl);
+   310|        }
+   311|      }
+   312|    }
+   313|    st.textContent = '💾 Menyimpan...';
+   314|    var ld = {user_id:user.id,latitude:pos.coords.latitude,longitude:pos.coords.longitude,deskripsi:desc||'PKL ditemukan',kategori_id:parseInt(kat),status:'aktif'};
+   315|    if (fotoUrls.length > 0) ld.foto_url = fotoUrls;
+   316|    var r = await db.from('lokasi').insert(ld);
+   317|    st.style.display='none';
+   318|    if (r.error) { alert('❌ '+r.error.message); }
+   319|    else {
+   320|      var msg = '✅ Laporan terkirim!';
+   321|      if (fotoUrls.length > 0) {
+   322|        var ok = fotoUrls.filter(function(u) { return !u.startsWith('ERROR:'); });
+   323|        var errs = fotoUrls.filter(function(u) { return u.startsWith('ERROR:'); });
+   324|        if (ok.length > 0) msg += '\n📸 '+ok.length+' foto berhasil';
+   325|        if (errs.length > 0) msg += '\n❌ Gagal: '+errs[0].replace('ERROR:','');
+   326|      }
+   327|      msg += '\n+5 poin';
+   328|      alert(msg);
+   329|      await db.rpc('increment_poin',{uid:user.id,amount:5});
+   330|      document.getElementById('laporDesc').value=''; document.getElementById('laporKat').value='7';
+   331|      document.getElementById('laporFoto').value=''; document.getElementById('laporPrev').innerHTML='';
+   332|    }
+   333|    switchTo('informan');
+   334|  }, function(err) { st.style.display='none'; alert('❌ '+err.message); switchTo('informan'); }, {enableHighAccuracy:true});
+   335|}
+   336|
+   337|async function loadHistori() {
+   338|  var d = await db.from('lokasi').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+   339|  var h = '<h3>📋 Riwayat Laporan</h3>';
+   340|  if (d.data && d.data.length>0) {
+   341|    d.data.forEach(function(loc) {
+   342|      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
+   343|      var f = '';
+   344|      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img loading="lazy" src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
+   345|      h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
+   346|      h += '<div style="font-size:11px;color:#888;">'+new Date(loc.created_at).toLocaleString('id-ID')+'</div>';
+   347|      if (f) h += '<div>'+f+'</div></div>';
+   348|    });
+   349|  } else h += '<p style="text-align:center;color:#888;">Belum ada laporan</p>';
+   350|  document.getElementById('historiList').innerHTML = h;
+   351|}
+   352|
+   353|// ===== PEDAGANG =====
+   354|async function loadLaporanSekitar() {
+   355|  switchTo('laporanSekitar');
+   356|  document.getElementById('laporanSekitarList').innerHTML = '<p style="text-align:center;color:#888;">Memuat...</p>';
+   357|  
+   358|  var d = await db.from('lokasi').select('*').eq('status','diverifikasi').order('created_at',{ascending:false}).limit(20);
+   359|  var userIds = []; if (d.data) d.data.forEach(function(loc) { userIds.push(loc.user_id); });
+   360|  var nameMap = {};
+   361|  if (userIds.length>0) { var np = await db.from('profiles').select('id,nama').in('id',userIds); if (np.data) np.data.forEach(function(p) { nameMap[p.id]=p.nama||'?'; }); }
+   362|  
+   363|  var h = '<h3>📋 Laporan PKL Sekitar</h3>';
+   364|  if (d.data && d.data.length>0) {
+   365|    d.data.forEach(function(loc) {
+   366|      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':'y')+'">'+loc.status+'</span>';
+   367|      var f = '';
+   368|      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img loading="lazy" src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
+   369|      h += '<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b> '+b;
+   370|      h += '<div style="font-size:11px;color:#888;">👤 '+(nameMap[loc.user_id]||'?')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
+   371|      if (f) h += '<div>'+f+'</div>';
+   372|      h += '<div style="margin-top:6px;display:flex;gap:4px;">';
+   373|      h += '<button class="btn-sm btn-g" onclick="beriPoin(\''+loc.user_id+'\',\''+(nameMap[loc.user_id]||'?')+'\')">⭐ Beri Poin</button>';
+   374|      h += '<button class="btn-sm btn-o" onclick="openMap('+loc.latitude+','+loc.longitude+')">🗺️ Maps</button>';
+   375|      h += '</div></div>';
+   376|    });
+   377|  } else h += '<p style="text-align:center;color:#888;">Belum ada laporan</p>';
+   378|  document.getElementById('laporanSekitarList').innerHTML = h;
+   379|}
+   380|
+   381|function beriPoin(uid, nama) {
+   382|  var j = prompt('Poin untuk '+(nama||'informan')+'?');
+   383|  if (!j || isNaN(j) || parseInt(j)<1) return;
+   384|  db.rpc('increment_poin',{uid:uid,amount:parseInt(j)}).then(function() { alert('✅ Poin diberikan!'); });
+   385|}
+   386|
+   387|async function loadDagangan() {
+   388|  var d = await db.from('produk').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+   389|  var h = '<h3>📦 Dagangan Saya</h3>';
+   390|  if (d.data && d.data.length>0) {
+   391|    d.data.forEach(function(p) {
+   392|      h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>📦 '+p.nama_produk+'</b><span style="color:#FF6B35;">'+(p.harga||'')+'</span></div>';
+   393|      h += '<button class="btn-sm btn-r" onclick="hapusProduk('+p.id+')">🗑️ Hapus</button></div>';
+   394|    });
+   395|  } else h += '<p style="text-align:center;color:#888;">Belum ada produk</p>';
+   396|  document.getElementById('daganganList').innerHTML = h;
+   397|}
+   398|
+   399|function tambahProduk() {
+   400|  var n = prompt('Nama produk:'); if (!n) return;
+   401|  var h = prompt('Harga:'); db.from('produk').insert({user_id:user.id,nama_produk:n,harga:h||''}).then(function(r) {
+   402|    if (r.error) alert('Gagal: '+r.error.message); else { alert('✅ Ditambahkan!'); loadDagangan(); }
+   403|  });
+   404|}
+   405|
+   406|async function hapusProduk(id) { if (confirm('Hapus?')) { await db.from('produk').delete().eq('id',id); loadDagangan(); } }
+   407|
+   408|// ===== MAP =====
+   409|function initMap() {
+   410|  setTimeout(function() {
+   411|    var c = document.getElementById('mapContainer');
+   412|    if (myMap) { myMap.invalidateSize(); loadMarkers(); return; }
+   413|    L.Icon.Default.imagePath = 'lib/images/';
+   414|    myMap = L.map('mapContainer').setView([-6.2,106.8],13);
+   415|    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(myMap);
+   416|    markerLayer = L.layerGroup().addTo(myMap); loadMarkers();
+   417|  }, 300);
+   418|}
+   419|async function loadMarkers() {
+   420|  if (!myMap||!markerLayer) return; markerLayer.clearLayers();
+   421|  var d = await db.from('lokasi').select('*').in('status',['aktif','diverifikasi']).order('created_at',{ascending:false});
+   422|  if (d.data && d.data.length>0) {
+   423|    var b = [];
+   424|    d.data.forEach(function(loc) {
+   425|      var pc = '<b>📍 '+(loc.deskripsi||'PKL')+'</b><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small>';
+   426|      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length>0) pc += '<br><img loading="lazy" src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px;margin-top:3px;">';
+   427|      L.marker([loc.latitude,loc.longitude]).addTo(markerLayer).bindPopup(pc); b.push([loc.latitude,loc.longitude]);
+   428|    });
+   429|    myMap.fitBounds(b,{padding:[30,30]});
+   430|  }
+   431|}
+   432|function refreshMap() { loadMarkers(); }
+   433|function centerMyLoc() {
+   434|  if (!myMap) return;
+   435|  if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function(pos) {
+   436|    myMap.setView([pos.coords.latitude,pos.coords.longitude],15);
+   437|    L.circleMarker([pos.coords.latitude,pos.coords.longitude],{radius:8,color:'#FF6B35',fillColor:'#FF6B35',fillOpacity:0.5}).addTo(markerLayer).bindPopup('📍 Posisi kamu');
+   438|  });
+   439|}
+   440|
+   441|document.addEventListener('DOMContentLoaded', init);
+   442|</script>
+   443|</body>
+   444|</html>
+   445|
