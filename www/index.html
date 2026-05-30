@@ -258,7 +258,7 @@
    258|      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
    259|      var f = '';
    260|      if (loc.foto_url && Array.isArray(loc.foto_url)) {
-   261|        loc.foto_url.forEach(function(u) { f += '<img loading="lazy" src="'+u+'" class="foto-thumb" onclick="openImage(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" style="width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer;">'; });
+   261|        loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onclick="openImage(\\\''+u+'\\\')" onerror="this.style.display=\\\'none\\\'" style="width:50px;height:50px;object-fit:cover;border-radius:6px;margin:2px;cursor:pointer;">'; });
    262|      }
    263|      h += '<div class="row"><div><b>'+(loc.deskripsi||'Tanpa nama')+'</b> <small>'+nameMap[loc.user_id]+'</small><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+' '+b+'</small>'+f+'</div>';
    264|      h += '<div style="display:flex;gap:3px;">';
@@ -341,7 +341,7 @@
    341|    d.data.forEach(function(loc) {
    342|      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':loc.status==='ditolak'?'r':'y')+'">'+loc.status+'</span>';
    343|      var f = '';
-   344|      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img loading="lazy" src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
+   344|      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
    345|      h += '<div class="card"><div style="display:flex;justify-content:space-between;"><b>'+(loc.deskripsi||'PKL')+'</b>'+b+'</div>';
    346|      h += '<div style="font-size:11px;color:#888;">'+new Date(loc.created_at).toLocaleString('id-ID')+'</div>';
    347|      if (f) h += '<div>'+f+'</div></div>';
@@ -365,7 +365,7 @@
    365|    d.data.forEach(function(loc) {
    366|      var b = '<span class="badge bg-'+(loc.status==='diverifikasi'?'g':'y')+'">'+loc.status+'</span>';
    367|      var f = '';
-   368|      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img loading="lazy" src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
+   368|      if (loc.foto_url && Array.isArray(loc.foto_url)) loc.foto_url.forEach(function(u) { f += '<img src="'+u+'" class="foto-thumb" onerror="this.style.display=\\\'none\\\'">'; });
    369|      h += '<div class="card"><b>'+(loc.deskripsi||'PKL')+'</b> '+b;
    370|      h += '<div style="font-size:11px;color:#888;">👤 '+(nameMap[loc.user_id]||'?')+' | '+new Date(loc.created_at).toLocaleDateString('id-ID')+'</div>';
    371|      if (f) h += '<div>'+f+'</div>';
@@ -423,7 +423,7 @@
    423|    var b = [];
    424|    d.data.forEach(function(loc) {
    425|      var pc = '<b>📍 '+(loc.deskripsi||'PKL')+'</b><br><small>'+new Date(loc.created_at).toLocaleDateString('id-ID')+'</small>';
-   426|      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length>0) pc += '<br><img loading="lazy" src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px;margin-top:3px;">';
+   426|      if (loc.foto_url && Array.isArray(loc.foto_url) && loc.foto_url.length>0) pc += '<br><img src="'+loc.foto_url[0]+'" style="width:120px;border-radius:6px;margin-top:3px;">';
    427|      L.marker([loc.latitude,loc.longitude]).addTo(markerLayer).bindPopup(pc); b.push([loc.latitude,loc.longitude]);
    428|    });
    429|    myMap.fitBounds(b,{padding:[30,30]});
