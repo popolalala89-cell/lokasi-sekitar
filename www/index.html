@@ -719,8 +719,8 @@ async function submitReport() {
 /** Load riwayat laporan user sendiri */
 async function loadHistori() {
   try {
-    // Load laporan + misi terkait
-    var d = await db.from('lokasi').select('*, missions(title)').eq('user_id', user.id).order('created_at', {ascending: false});
+    // Load laporan (tanpa join — kompatibel meski tabel missions belum ada)
+    var d = await db.from('lokasi').select('*').eq('user_id', user.id).order('created_at', {ascending: false});
     var html = '';
     
     // Partisipasi misi
@@ -745,7 +745,7 @@ async function loadHistori() {
           });
         }
         html += '<div class="card"><b>' + escapeHtml(loc.deskripsi || 'PKL') + '</b> ' + b;
-        if (loc.missions) html += '<br><small>🎯 Misi: ' + escapeHtml(loc.missions.title || '?') + '</small>';
+        if (loc.mission_id) html += '<br><small>🎯 Misi #' + loc.mission_id + '</small>';
         html += '<br><small>' + formatDate(loc.created_at) + '</small><br>' + f + '</div>';
       });
     } else {
@@ -1078,16 +1078,28 @@ function selectMission(id) {
 
 /** Load dropdown misi aktif untuk form lapor */
 async function loadMisiDropdown() {
+  var sel = document.getElementById('laporMisi');
+  if (!sel) return;
   try {
     var d = await db.from('missions').select('id,title').eq('status', 'active').order('created_at', {ascending: false});
-    var sel = document.getElementById('laporMisi');
     sel.innerHTML = '<option value="">📋 (Opsional) Pilih Misi</option>';
-    if (d.data) {
+    if (d.error) {
+      // Tabel missions mungkin belum ada — fallback graceful
+      sel.innerHTML += '<option value="" disabled>⚠️ Fitur misi belum tersedia</option>';
+      return;
+    }
+    if (d.data && d.data.length > 0) {
       d.data.forEach(function(m) {
         sel.innerHTML += '<option value="' + m.id + '">📋 ' + escapeHtml(m.title) + '</option>';
       });
+    } else {
+      sel.innerHTML += '<option value="" disabled>Belum ada misi aktif</option>';
     }
-  } catch(e) {}
+  } catch(e) {
+    // Tabel missions belum di-migrate — fallback graceful
+    sel.innerHTML = '<option value="">📋 (Opsional) Pilih Misi</option>';
+    sel.innerHTML += '<option value="" disabled>⚠️ Fitur misi belum tersedia</option>';
+  }
 }
 
 // Override showPage untuk lapor form: reload misi dropdown
@@ -1185,26 +1197,38 @@ async function loadLeaderboard(period) {
       since = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    var d = await db.from('lokasi').select('user_id, profiles!inner(nama)')
+    // Ambil data laporan verified dalam periode
+    // NOTE: Gunakan separate queries (bukan join) untuk kompatibilitas Supabase JS v2.39
+    var d = await db.from('lokasi').select('user_id')
       .eq('status', 'diverifikasi')
       .gte('created_at', since.toISOString());
 
-    if (d.error) { showToast('Gagal load leaderboard', 'error'); return; }
+    if (d.error) { showToast('Gagal load leaderboard: ' + d.error.message, 'error'); return; }
 
+    // Ambil semua user_id dan hitung per user
     var counts = {};
+    var allUserIds = [];
     if (d.data) d.data.forEach(function(loc) {
       var uid = loc.user_id;
-      if (!counts[uid]) counts[uid] = { count: 0, nama: loc.profiles ? loc.profiles.nama : 'Anonim' };
-      counts[uid].count++;
+      if (!counts[uid]) { counts[uid] = 0; allUserIds.push(uid); }
+      counts[uid]++;
     });
 
+    // Ambil nama dari profiles (batch query)
+    var nameMap = {};
+    if (allUserIds.length > 0) {
+      var np = await db.from('profiles').select('id,nama').in('id', allUserIds.slice(0, 100));
+      if (np.data) np.data.forEach(function(pr) { nameMap[pr.id] = pr.nama || 'Anonim'; });
+    }
+
+    // Ambil poin
     var p = await db.from('profiles').select('id,poin').order('poin', {ascending: false}).limit(20);
     var poinMap = {};
     if (p.data) p.data.forEach(function(pr) { poinMap[pr.id] = pr.poin || 0; });
 
     var arr = [];
     for (var uid in counts) {
-      arr.push({ uid: uid, nama: counts[uid].nama, laporan: counts[uid].count, poin: poinMap[uid] || 0 });
+      arr.push({ uid: uid, nama: nameMap[uid] || 'Anonim', laporan: counts[uid], poin: poinMap[uid] || 0 });
     }
     arr.sort(function(a, b) { return b.laporan - a.laporan; });
     arr = arr.slice(0, 20);

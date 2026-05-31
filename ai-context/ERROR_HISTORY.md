@@ -70,6 +70,31 @@ Setiap entry HARUS mengikuti format di bawah. Jangan skip field apa pun.
 
 ---
 
+### ERR-005: Leaderboard Gagal Load — Join Syntax Tidak Kompatibel
+- **Tanggal:** 31 Mei 2026
+- **Gejala:** Halaman leaderboard kosong atau toast "Gagal load leaderboard". Tidak ada data yang muncul.
+- **Reproduksi:** Buka Leaderboard dari dashboard Informan atau Pedagang.
+- **Root Cause:** Query menggunakan `profiles!inner(nama)` join syntax yang tidak kompatibel dengan Supabase JS v2.39.0. Join hint `!inner` membutuhkan versi lebih baru atau format berbeda. Akibat: query error dan handler menampilkan toast.
+- **File Terdampak:** `www/index.html` → `loadLeaderboard()` (line 1188)
+- **Solusi:** Ganti join query dengan dua query terpisah: (1) select user_id dari lokasi, (2) batch query profiles untuk nama. Lebih reliable dan kompatibel dengan semua versi Supabase JS.
+- **Status:** ✅ Fixed
+
+---
+
+### ERR-006: Kirim Laporan Misi Gagal — Tabel Missions Belum Ada
+- **Tanggal:** 31 Mei 2026
+- **Gejala:** Form lapor tidak bisa dibuka atau dropdown misi error. Laporan gagal terkirim jika user memilih misi.
+- **Reproduksi:** Buka form Lapor → dropdown misi kosong/error → submit dengan misi terpilih (jika ada cache).
+- **Root Cause:** Tabel `missions` belum di-migrate di Supabase. Query `loadMisiDropdown()` gagal (catch block kosong — silent failure). `loadHistori()` juga gagal karena join `missions(title)` ke tabel yang tidak ada. Jika user entah bagaimana punya mission_id tersimpan, insert ke kolom `mission_id` yang belum ada akan gagal.
+- **File Terdampak:** `www/index.html` → `loadMisiDropdown()`, `loadHistori()`, `submitReport()`
+- **Solusi:** 
+  1. `loadMisiDropdown()`: tampilkan "⚠️ Fitur misi belum tersedia" sebagai fallback, bukan silent failure
+  2. `loadHistori()`: hapus join ke tabel missions, tampilkan mission_id sebagai teks saja
+  3. `submitReport()`: sudah aman karena `misiId` falsy (string kosong) jika dropdown gagal load
+- **Status:** ✅ Fixed
+
+---
+
 ## Template Entry Baru
 
 ```markdown
