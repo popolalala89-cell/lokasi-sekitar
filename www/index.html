@@ -463,32 +463,33 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In: Native Capacitor plugin (codetrix-studio) */
+/** Google Sign-In: Chrome Custom Tabs OAuth → deep link callback */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // Deteksi plugin native (sama seperti di initGoogleAuth)
-    var gAuth = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth) ? Capacitor.Plugins.GoogleAuth : 
-                (typeof GoogleAuth !== 'undefined') ? GoogleAuth : null;
-    if (!gAuth) {
-      throw new Error('Google Sign-In native tidak tersedia');
-    }
-    // Sign out dulu biar bisa pilih akun
-    try { await gAuth.signOut(); } catch(e) {}
-    // Sign in → dapat ID token
-    var result = await gAuth.signIn();
-    if (!result || !result.authentication || !result.authentication.idToken) {
-      throw new Error('Gagal mendapatkan akun Google');
-    }
-    // Tukar ID token ke Supabase session
-    await signInSupabaseWithGoogleToken(result.authentication.idToken);
-  } catch(err) {
-    if (err.message && err.message.includes('cancel')) {
-      showToast('Login dibatalkan', 'info');
+    // 1. Dapatkan OAuth authorize URL (skip redirect — kita handle manual)
+    var { data, error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'com.cibay.lokasisekitar://auth/callback',
+        skipBrowserRedirect: true
+      }
+    });
+    if (error) throw new Error(error.message);
+    if (!data || !data.url) throw new Error('Gagal mendapatkan link login');
+
+    // 2. Buka di Chrome Custom Tabs
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
+      await Capacitor.Plugins.Browser.open({ url: data.url, windowName: '_self' });
     } else {
-      showToast('Error: ' + (err.message || err), 'error');
+      // Fallback: buka di browser system
+      window.open(data.url, '_system');
     }
+    // Redirect balik ditangani setupDeepLinks() → appUrlOpen
+    // Jangan re-enable button — app akan reload via deep link
+  } catch(err) {
+    showToast('Error: ' + (err.message || err), 'error');
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
   }
 }
