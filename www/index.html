@@ -480,9 +480,9 @@ async function handleGoogleLogin() {
     if (error) throw new Error(error.message);
     if (!data || !data.url) throw new Error('Gagal mendapatkan link login');
 
-    // 2. Buka di Chrome Custom Tabs
+    // 2. Buka di Chrome Custom Tabs (_blank = external)
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
-      await Capacitor.Plugins.Browser.open({ url: data.url, windowName: '_self' });
+      await Capacitor.Plugins.Browser.open({ url: data.url, windowName: '_blank' });
     } else {
       // Fallback: buka di browser system
       window.open(data.url, '_system');
