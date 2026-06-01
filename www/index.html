@@ -473,9 +473,17 @@ async function handleGoogleLogin() {
       options: { redirectTo: redirectTo }
     });
     if (error) { showToast('Gagal: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Masuk dengan Google'; return; }
-    // Buka URL OAuth di browser sistem
+    // Buka di Chrome Custom Tabs (handles deep link ke app)
     if (data.url) {
-      window.open(data.url, '_system');
+      try {
+        if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
+          await Capacitor.Plugins.Browser.open({ url: data.url, presentationStyle: 'popover' });
+        } else {
+          window.open(data.url, '_system');
+        }
+      } catch(e) {
+        window.open(data.url, '_system');
+      }
     }
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
@@ -1399,6 +1407,12 @@ function setupDeepLinks() {
             if (access_token && refresh_token) {
               await db.auth.setSession({ access_token: access_token, refresh_token: refresh_token });
               showToast('✅ Login Google berhasil!', 'success');
+              // Tutup browser tab
+              try {
+                if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
+                  await Capacitor.Plugins.Browser.close();
+                }
+              } catch(e) {}
               await loadProfile();
               if (profile) showPage(getDashboardForRole(profile.role));
             }
