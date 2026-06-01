@@ -1,82 +1,56 @@
 # Latest Feature Summary — Lokasi Sekitar
 
-> **Auto-generated:** 31 Mei 2026 | **Source:** `CURRENT_STATE.md` + code review
->
-> ⚠️ RINGKASAN fitur yang sudah jadi, sedang dikerjakan, dan direncanakan.
-> Update setiap kali fitur selesai.
+> **Auto-generated:** 1 Juni 2026 | **Source:** `CURRENT_STATE.md` + git log
 
 ---
 
-## Fitur Jadi (✅ Production)
+## Fitur Jadi (✅ Production) — v2.2.1
 
 ### 1. Authentication System
-- **File:** `www/index.html` → Auth section
-- **Deskripsi:** Login/Register dengan email + password via Supabase Auth
-- **Role:** Saat register pilih `informan` atau `pedagang`
-- **Session:** Auto-login (token di localStorage)
-- **Logout:** Clear session + redirect ke login
+- Login/Register email + password via Supabase Auth
+- Role: admin, informan, pedagang
+- Auto-login (token localStorage)
 
 ### 2. Role-Based Dashboard
-- **File:** `www/index.html` → showDashboard()
-- **Deskripsi:** Tampilan berbeda untuk Admin, Informan, Pedagang
-- **Admin:** Dashboard statistik + list laporan pending + list user
-- **Informan:** Form lapor + riwayat laporan + poin
-- **Pedagang:** Peta + (misi coming soon)
+- Admin: Statistik + verifikasi laporan + list user
+- Informan: Form lapor + riwayat + poin + misi terdekat
+- Pedagang: Laporan sekitar + produk + buat misi + beli paket
 
 ### 3. Informan: Lapor Lokasi
-- **File:** `www/index.html` → submitReport()
-- **Flow:** Buka kamera → Ambil foto → Baca GPS → Catatan → Upload
-- **Validasi:** GPS di Indonesia, foto tidak kosong
-- **Storage:** Foto di Supabase Storage, metadata di tabel submissions
-- **Status awal:** pending
+- Foto via kamera Capacitor + GPS
+- Upload ke Supabase Storage (pkl-photos)
+- Status: pending → verified/rejected
 
-### 4. Admin: Verifikasi Laporan
-- **File:** `www/index.html` → verifyReport() / rejectReport()
-- **Flow:** Lihat foto → Cek GPS → Klik Verifikasi/Tolak
-- **Efek:** Verified → trigger +10 poin ke informan
-- **Bulk:** Belum ada (coming soon)
+### 4. Admin: Verifikasi
+- Review foto + GPS + approve/reject
+- +10 poin otomatis via DB trigger
+- +15 poin jika laporan terkait misi
 
-### 5. Peta Interaktif
-- **File:** `www/index.html` → initMap() / loadMarkers()
-- **Library:** Leaflet.js + OpenStreetMap tiles
-- **Marker:** Laporan verified dengan popup (thumb+caption)
-- **Offset:** GPS di-random 50-200m (privasi)
+### 5. Misi System (v2.1)
+- Pedagang buat misi (budget poin, deadline, area)
+- Informan cari misi terdekat & ikut
+- Auto-close saat deadline lewat
 
-### 6. Poin System
-- **File:** Supabase trigger + `www/index.html`
-- **Mekanisme:** Trigger PostgreSQL `award_points_on_verify`
-- **Amount:** +10 poin per laporan verified
-- **Audit:** Tercatat di tabel transactions
+### 6. Paket System (v2.1)
+- Pedagang beli paket (daily/weekly/monthly)
+- Kuota laporan per paket
+- Auto-expire saat masa habis
 
-### 7. CI/CD Build APK
-- **File:** `.github/workflows/android-build.yml`
-- **Trigger:** Push main → debug APK | Tag v* → release APK (signed)
-- **Artifacts:** Download dari GitHub Actions tab
+### 7. Gamifikasi (v2.2)
+- Leaderboard informan (bulanan & all-time)
+- Badge tier: bronze/silver/gold
+- Halaman profil + statistik
 
----
+### 8. Notifikasi Realtime (v2.2)
+- Supabase Realtime untuk update status
+- Toast notification (success/error/warning/info)
 
-## Fitur Setengah Jadi (⚠️ Partial)
+### 9. Peta Interaktif
+- Leaflet.js + OpenStreetMap
+- GPS offset 50-200m untuk privasi
 
-### 8. Offline Queue
-- **Status:** Basic — simpan di localStorage, sync saat online
-- **Batasan:** Maks 5 laporan, belum ada progress indicator
-
----
-
-## Fitur Rencana Jangka Pendek (v2.1)
-
-1. **Misi (Mission) System** — Pedagang buat permintaan info
-2. **Paket & Payment** — Paket harian/mingguan/bulanan, top-up
-3. **Notifikasi** — Supabase Realtime untuk status update
-
----
-
-## Fitur Rencana Jangka Panjang (v2.2 - v3.0)
-
-1. **Leaderboard** — Gamifikasi informan
-2. **AI Auto-Verifikasi** — Cek validitas foto + GPS otomatis
-3. **Multi-Kota** — Filter & grouping per kota
-4. **Export CSV** — Download data untuk analitik
+### 10. CI/CD Build APK
+- GitHub Actions: push main → debug APK, tag v* → release APK signed
 
 ---
 
@@ -84,10 +58,26 @@
 
 | Status | Count |
 |--------|-------|
-| ✅ Production | 7 |
-| ⚠️ Partial | 1 |
-| 🚧 In Progress | 0 |
-| ❌ Planned | 8 |
+| ✅ Production | 10 |
+| ⬜ Planned (v2.3) | 2 |
+| ⬜ Planned (v3.0) | 5 |
+
+---
+
+## Fitur Rencana Jangka Pendek (v2.3)
+
+1. **Google Login OAuth** — deep link Capacitor
+2. **Payment Integration** — QRIS/transfer
+
+---
+
+## Fitur Rencana Jangka Panjang (v3.0)
+
+1. AI auto-verifikasi foto + GPS
+2. Multi-kota support
+3. Export CSV
+4. Dashboard statistik lanjutan
+5. Referral system
 
 ---
 

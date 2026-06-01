@@ -1,6 +1,6 @@
 # TASK_BOARD.md — Board Task & Progress
 
-> **Versi:** 1.0 | **Terakhir diupdate:** 31 Mei 2026
+> **Versi:** 2.0 | **Terakhir diupdate:** 1 Juni 2026
 >
 > **Cara pakai:** Setiap task punya status: `todo`, `in_progress`, `done`, `blocked`.
 > Hanya SATU task `in_progress` dalam satu waktu.
@@ -8,46 +8,54 @@
 
 ---
 
-## Current Sprint: Dokumentasi Fondasi
+## Completed: Fase 1 — Maintenance & Dokumentasi ✅
 
 | ID | Task | Status | Assignee | Target |
 |----|------|--------|----------|--------|
-| DOC-01 | Buat struktur folder (docs/, architecture/, dll.) | ✅ done | Hermes Agent | 31 Mei |
-| DOC-02 | Isi /docs (5 file) | ✅ done | Hermes Agent | 31 Mei |
-| DOC-03 | Isi /architecture (6 file) | ✅ done | Hermes Agent | 31 Mei |
-| DOC-04 | Isi /engineering (7 file) | ✅ done | Hermes Agent | 31 Mei |
-| DOC-05 | Isi /ai-context (5 file) | 🚧 in_progress | Hermes Agent | 31 Mei |
-| DOC-06 | Isi /context (4 file) | ⬜ todo | Hermes Agent | 31 Mei |
-| DOC-07 | Buat CHECKLIST.md | ⬜ todo | Hermes Agent | 31 Mei |
-| DOC-08 | Final review & commit | ⬜ todo | Hermes Agent | 31 Mei |
+| DOC-01 | Buat struktur folder (docs/, architecture/, dll.) | ✅ done | AI Agent | 31 Mei |
+| DOC-02 | Isi /docs (5 file) | ✅ done | AI Agent | 31 Mei |
+| DOC-03 | Isi /architecture (6 file) | ✅ done | AI Agent | 31 Mei |
+| DOC-04 | Isi /engineering (7 file) | ✅ done | AI Agent | 31 Mei |
+| DOC-05 | Isi /ai-context (5 file) | ✅ done | AI Agent | 31 Mei |
+| DOC-06 | Isi /context (4 file) | ✅ done | AI Agent | 31 Mei |
+| DOC-07 | Buat CHECKLIST.md | ✅ done | AI Agent | 31 Mei |
+| DOC-08 | Final review & commit | ✅ done | AI Agent | 31 Mei |
+| DOC-09 | Code review + refactor index.html | ✅ done | AI Agent | 31 Mei |
+| DOC-10 | Completion Gate di AGENTS.md + DEC-008 | ✅ done | AI Agent | 1 Juni |
 
 ---
 
-## Backlog: v2.1 — Misi & Paket
+## Completed: v2.1 — Misi & Paket ✅
 
-| ID | Task | Priority | Status | Dependency |
-|----|------|----------|--------|------------|
-| MSI-01 | Buat tabel `missions` di Supabase | P0 | ⬜ todo | — |
-| MSI-02 | Buat tabel `packages` di Supabase | P0 | ⬜ todo | — |
-| MSI-03 | Buat UI Pedagang: Buat Misi | P0 | ⬜ todo | MSI-01 |
-| MSI-04 | Buat UI Informan: Lihat Misi Terdekat | P0 | ⬜ todo | MSI-01 |
-| MSI-05 | Integrasi laporan dgn misi (mission_id FK) | P0 | ⬜ todo | MSI-03, MSI-04 |
-| MSI-06 | Buat UI Pedagog: Beli Paket | P0 | ⬜ todo | MSI-02 |
-| MSI-07 | Logika kuota paket (quota_used++) | P0 | ⬜ todo | MSI-02, MSI-06 |
-| MSI-08 | Payment integration (QRIS/transfer) | P1 | ⬜ todo | MSI-06 |
-| MSI-09 | Halaman riwayat misi (pedagang) | P1 | ⬜ todo | MSI-03 |
-| MSI-10 | Halaman riwayat partisipasi misi (informan) | P1 | ⬜ todo | MSI-04 |
+| ID | Task | Priority | Status |
+|----|------|----------|--------|
+| MSI-01 | Buat tabel `missions` di Supabase | P0 | ✅ done |
+| MSI-02 | Buat tabel `packages` di Supabase | P0 | ✅ done |
+| MSI-03 | Buat UI Pedagang: Buat Misi | P0 | ✅ done |
+| MSI-04 | Buat UI Informan: Lihat Misi Terdekat | P0 | ✅ done |
+| MSI-05 | Integrasi laporan dgn misi (mission_id FK) | P0 | ✅ done |
+| MSI-06 | Buat UI Pedagang: Beli Paket | P0 | ✅ done |
+| MSI-07 | Logika kuota paket (quota_used++) | P0 | ✅ done |
 
 ---
 
-## Backlog: v2.2 — Gamifikasi & Notifikasi
+## Completed: v2.2 — Gamifikasi & Notifikasi ✅
+
+| ID | Task | Priority | Status |
+|----|------|----------|--------|
+| GAM-01 | Leaderboard informan (bulanan) | P2 | ✅ done |
+| GAM-02 | Badge/achievement system | P2 | ✅ done |
+| GAM-03 | Notifikasi real-time (Supabase Realtime) | P1 | ✅ done |
+| GAM-04 | Halaman profil + statistik | P2 | ✅ done |
+
+---
+
+## Backlog: v2.3 — Auth & Monetisasi
 
 | ID | Task | Priority | Status | Dependency |
 |----|------|----------|--------|------------|
-| GAM-01 | Leaderboard informan (bulanan) | P2 | ⬜ todo | — |
-| GAM-02 | Badge/achievement system | P2 | ⬜ todo | GAM-01 |
-| GAM-03 | Notifikasi real-time (Supabase Realtime) | P1 | ⬜ todo | — |
-| GAM-04 | Broadcast notifikasi ke semua user | P1 | ⬜ todo | GAM-03 |
+| AUT-01 | Google Login OAuth + deep link Capacitor | P1 | ⬜ todo | — |
+| PAY-01 | Payment integration (QRIS/transfer) | P1 | ⬜ todo | MSI-06 |
 
 ---
 
@@ -67,14 +75,15 @@
 
 | ID | Bug | Severity | Status |
 |----|-----|----------|--------|
-| — | (tidak ada bug outstanding) | — | — |
+| ERR-005 | Leaderboard gagal load (join syntax) | High | ✅ Fixed (31 Mei) |
+| ERR-006 | Kirim laporan misi error (tabel missions) | High | ✅ Fixed (31 Mei) |
 
 ---
 
 ## Cara Update
 
 ```markdown
-| MSI-03 | Buat UI Pedagang: Buat Misi | P0 | 🚧 in_progress | Assignee | Target |
+| AUT-01 | Google Login OAuth | P1 | 🚧 in_progress | AI Agent | 1 Juni |
 ```
 
 **Status emoji:** ⬜ todo | 🚧 in_progress | ✅ done | ❌ blocked | 🗑️ cancelled

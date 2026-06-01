@@ -1,6 +1,6 @@
 # CURRENT_STATE.md — Kondisi Project Saat Ini
 
-> **Versi:** 2.0.1 | **Terakhir diupdate:** 31 Mei 2026
+> **Versi:** 2.2.1 | **Terakhir diupdate:** 1 Juni 2026
 
 ---
 
@@ -8,36 +8,38 @@
 
 | Item | Status |
 |------|--------|
-| **Versi aplikasi** | 2.0.1 (maintenance release) |
+| **Versi aplikasi** | 2.2.1 (gamification + bugfix) |
 | **Stabilitas** | Stable |
-| **Fase development** | Fase 1 — Maintenance (selesai 9/10 task) |
-| **Next milestone** | v2.1 — Misi & Paket |
+| **Fase development** | Fase 2 — Fitur v2.1 & v2.2 selesai |
+| **Next milestone** | v2.3 — Google Login OAuth / AI Auto-Verifikasi |
 | **Blocker** | Tidak ada |
 
 ---
 
-## Ringkasan Fase 1 (Maintenance)
+## Ringkasan Fase 2 (v2.1 — Misi & Paket)
 
-### Yang sudah dikerjakan (31 Mei 2026):
+### v2.1 — Misi & Paket ✅
+1. ✅ Tabel `missions` — vendor_id, title, area, budget_poin, deadline, status
+2. ✅ Tabel `packages` — type (daily/weekly/monthly), price, quota, status
+3. ✅ UI Pedagang: Buat Misi (`misiPg`, `buatMisiPg`)
+4. ✅ UI Informan: Cari Misi Terdekat (`cariMisiPg`)
+5. ✅ Kolom `mission_id` di tabel `lokasi` (FK)
+6. ✅ Load misi dropdown di form lapor
 
-1. ✅ **Code review** — `www/index.html` vs coding rules
-2. ✅ **Plugin install** — `@capacitor/camera@^5`, `@capacitor/geolocation@^5`, `@capacitor/filesystem@^5`, `@capacitor/splash-screen@^5`
-3. ✅ **Refactor** — Comment header JSDoc untuk semua fungsi, struktur modul jelas (Auth, Navigation, Admin, Informan, Pedagang, Map, Utility)
-4. ✅ **escapeHtml()** — 15 pemakaian, semua render user input aman dari XSS
-5. ✅ **Offline awareness** — `isOnline()` check sebelum submit, toast warning
-6. ✅ **Error standardization** — Semua error via `showToast()` (34 pemakaian), ada success/error/warning/info
-7. ✅ **showToast()** — Custom toast notification menggantikan `alert()` (1 alert tersisa: prompt user input)
-8. ✅ **loading="lazy"** — Dihapus dari `www/app.js` (file dead code dihapus total)
-9. ✅ **GPS offset** — `offsetGPS()` random 50-200m untuk marker peta (BR-070)
-10. ⬜ **Build release APK** — Commit + tag v2.0.1 + push
+### v2.2 — Gamifikasi & Notifikasi ✅
+1. ✅ Leaderboard informan (`leaderPg`) — bulanan, semua waktu
+2. ✅ Badge/achievement system — tier bronze/silver/gold
+3. ✅ Halaman Profil (`profilPg`) — statistik, badge, poin
+4. ✅ Notifikasi real-time via Supabase Realtime
+5. ✅ Toast notification system menggantikan `alert()`
 
-### File berubah:
-- `www/index.html` — Refactor penuh (284→808 baris, documented, safer)
-- `www/app.js` — DIHAPUS (dead code, tidak direferensi)
-- `package.json` — 4 plugin Capacitor baru
-- `engineering/database_schema.md` — Update ke actual schema
-- `engineering/api_contract.md` — Update table names
-- `context/latest_schema_summary.md` — Update
+### Bug Fixes
+1. ✅ ERR-005: Leaderboard gagal load — join query incompatible (31 Mei 2026)
+2. ✅ ERR-006: Laporan misi error — fallback handling (31 Mei 2026)
+3. ✅ v1.6.3-1.6.4: Blank putih setelah login — role-to-page mapping (30-31 Mei 2026)
+
+### Process Improvement
+1. ✅ DEC-008: Completion Gate — wajib update 7 docs sebelum task selesai (1 Juni 2026)
 
 ---
 
@@ -48,15 +50,19 @@
 | Login/Register email | ✅ | Supabase Auth + auto-create profile |
 | Role-based dashboard | ✅ | Admin, Informan, Pedagang |
 | Informan: Lapor (foto+GPS) | ✅ | Upload ke pkl-photos bucket |
-| Admin: Verifikasi/Tolak | ✅ | +10 poin via RPC increment_poin |
-| Admin: Dashboard statistik | ✅ | Count queries |
-| Admin: List laporan | ✅ | Filter by status |
+| Admin: Verifikasi/Tolak | ✅ | +10 poin via trigger |
+| Admin: Dashboard statistik | ✅ | Count queries pending/verified/total |
 | Peta interaktif | ✅ | Leaflet + GPS offset privasi |
-| Poin otomatis | ✅ | RPC increment_poin |
-| Pedagang: Laporan sekitar | ✅ | List verified |
-| Pedagang: Beri poin | ✅ | Via prompt dialog |
+| Poin otomatis | ✅ | DB trigger award_points_on_verify |
+| Pedagang: Laporan sekitar | ✅ | List verified + beri poin |
 | Pedagang: Kelola produk | ✅ | CRUD produk |
+| Pedagang: Buat Misi | ✅ | Budget poin, deadline, auto-close |
+| Informan: Cari & Ikut Misi | ✅ | Misi terdekat, claim |
+| Leaderboard | ✅ | Bulanan & all-time, tier badge |
+| Profil + Badge | ✅ | Statistik, bronze/silver/gold |
+| Notifikasi realtime | ✅ | Supabase Realtime |
 | CI/CD build APK | ✅ | Debug (push) + Release (tag) |
+| Completion Gate | ✅ | AGENTS.md section + DEC-008 |
 
 ---
 
@@ -64,11 +70,24 @@
 
 | Fitur | Priority | Target Version |
 |-------|----------|----------------|
-| Misi | P0 | v2.1 |
-| Paket berbayar | P0 | v2.1 |
-| Notifikasi real-time | P1 | v2.2 |
-| Leaderboard | P2 | v2.2 |
+| Google Login OAuth | P1 | v2.3 |
+| Payment integration (QRIS) | P1 | v2.3 |
 | AI auto-verifikasi | P2 | v3.0 |
+| Multi-kota support | P2 | v3.0 |
+| Export CSV | P2 | v3.0 |
+
+---
+
+## File Terbaru
+
+| File | Baris | Deskripsi |
+|------|-------|-----------|
+| `www/index.html` | 1.367 | Main app — 47+ fungsi |
+| `ai-context/AGENTS.md` | ~200 | Aturan AI agent + Completion Gate |
+| `ai-context/CURRENT_STATE.md` | ini | Status terkini |
+| `ai-context/DECISIONS.md` | 158 | 8 keputusan teknis (DEC-001 s/d DEC-008) |
+| `ai-context/ERROR_HISTORY.md` | 115 | 6 error tercatat (ERR-001 s/d ERR-006) |
+| `ai-context/TASK_BOARD.md` | 85 | Board task (perlu update) |
 
 ---
 
