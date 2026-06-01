@@ -463,47 +463,24 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In: native plugin dulu, fallback ke Google GIS library */
+/** Google Sign-In: WebView-based OAuth, tanpa browser external */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // Coba native Capacitor plugin
-    var gAuth = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth) ? Capacitor.Plugins.GoogleAuth : null;
-    // Coba Google GIS library (web-based)
-    var gLib = (typeof google !== 'undefined' && google.accounts && google.accounts.id) ? google.accounts.id : null;
-
-    if (gAuth) {
-      // Native Google Sign-In via Capacitor plugin
-      try { await gAuth.signOut(); } catch(e) {}
-      var gauth = await gAuth.signIn();
-      if (!gauth || !gauth.authentication || !gauth.authentication.idToken) {
-        throw new Error('Gagal mendapatkan akun Google');
+    // Biarkan Supabase redirect WebView langsung — tanpa buka browser
+    var { error } = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { prompt: 'select_account' }
       }
-      await signInSupabaseWithGoogleToken(gauth.authentication.idToken);
-    } else if (gLib) {
-      // Google Identity Services (web-based One Tap)
-      gLib.initialize({
-        client_id: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
-        callback: function(response) {
-          if (response.credential) {
-            signInSupabaseWithGoogleToken(response.credential);
-          }
-        }
-      });
-      gLib.prompt();
-      // Jangan re-enable button — GIS callback yang handle
-      return;
-    } else {
-      // Fallback: browser OAuth
-      var redirectTo = 'com.cibay.lokasisekitar://auth/callback';
-      var { data, error } = await db.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: redirectTo }
-      });
-      if (error) { showToast('Gagal: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Masuk dengan Google'; return; }
-      if (data.url) window.open(data.url, '_system');
+    });
+    if (error) {
+      showToast('Gagal: ' + error.message, 'error');
+      btn.disabled = false; btn.textContent = 'Masuk dengan Google';
     }
+    // Kalau sukses, page akan redirect ke Google → kembali dgn session
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
@@ -527,7 +504,7 @@ async function signInSupabaseWithGoogleToken(idToken) {
   if (result.error || !result.access_token) {
     showToast('Gagal login: ' + (result.error_description || result.msg || 'unknown'), 'error');
     var btn = document.getElementById('googleBtn');
-    btn.disabled = false; btn.textContent = 'Masuk dengan Google';
+    if (btn) { btn.disabled = false; btn.textContent = 'Masuk dengan Google'; }
     return;
   }
   await db.auth.setSession({
