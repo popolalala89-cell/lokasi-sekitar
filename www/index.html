@@ -470,9 +470,8 @@ async function handleGoogleLogin() {
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'com.cibay.lokasisekitar://auth/callback',
+        redirectTo: 'https://localhost',
         skipBrowserRedirect: true,
-        flowType: 'pkce',
         queryParams: { prompt: 'select_account' }
       }
     });
@@ -1433,7 +1432,8 @@ function setupDeepLinks() {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
       Capacitor.Plugins.App.addListener('appUrlOpen', function(data) {
         var url = data.url;
-        if (!url || !url.includes('auth/callback')) return;
+        if (!url) return;
+        if (!url.includes('auth/callback') && !url.includes('localhost')) return;
         showToast('🔐 Memproses login...', 'info');
         handleAuthCallback(url);
       });
@@ -1527,7 +1527,7 @@ async function checkLaunchUrl() {
   try {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
       var { value: launchUrl } = await Capacitor.Plugins.App.getLaunchUrl();
-      if (launchUrl && launchUrl.includes('auth/callback')) {
+      if (launchUrl && (launchUrl.includes('auth/callback') || launchUrl.includes('localhost'))) {
         handleAuthCallback(launchUrl);
       }
     }
