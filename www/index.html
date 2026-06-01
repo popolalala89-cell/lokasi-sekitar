@@ -468,12 +468,13 @@ async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // 1. Dapatkan OAuth authorize URL (skip redirect — kita handle manual)
+    // 1. Dapatkan OAuth authorize URL (PKCE — code di query params, bukan hash)
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: 'com.cibay.lokasisekitar://auth/callback',
-        skipBrowserRedirect: true
+        skipBrowserRedirect: true,
+        flowType: 'pkce'
       }
     });
     if (error) throw new Error(error.message);
@@ -1440,6 +1441,7 @@ function setupDeepLinks() {
 
 /** Proses callback OAuth dari Supabase — support code exchange & hash token */
 async function handleAuthCallback(url) {
+  log('Auth', 'handleAuthCallback: ' + url.substring(0, 80));
   try {
     // Ekstrak hash fragment (#access_token=...&refresh_token=...)
     var hash = url.split('#')[1];
