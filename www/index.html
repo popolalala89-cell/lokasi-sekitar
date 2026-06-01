@@ -1385,33 +1385,14 @@ function handleRealtimeUpdate(payload) {
 function setupDeepLinks() {
   try {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
-      Capacitor.Plugins.App.addListener('appUrlOpen', async function(data) {
+      Capacitor.Plugins.App.addListener('appUrlOpen', function(data) {
         var url = data.url;
         if (!url || !url.includes('auth/callback')) return;
-        log('Auth', 'Deep link received', url);
-        try {
-          // Extract tokens from URL hash (Supabase PKCE flow)
-          var hashPart = url.split('#')[1];
-          if (hashPart) {
-            var params = new URLSearchParams(hashPart);
-            var access_token = params.get('access_token');
-            var refresh_token = params.get('refresh_token');
-            if (access_token && refresh_token) {
-              await db.auth.setSession({ access_token: access_token, refresh_token: refresh_token });
-              showToast('✅ Login Google berhasil!', 'success');
-              // Tutup browser tab
-              try {
-                if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
-                  await Capacitor.Plugins.Browser.close();
-                }
-              } catch(e) {}
-              await loadProfile();
-              if (profile) showPage(getDashboardForRole(profile.role));
-            }
-          }
-        } catch(e) {
-          log('Auth', 'Deep link error', e);
-        }
+        showToast('🔐 Memproses login...', 'info');
+        // Convert custom scheme ke https://localhost agar WebView bisa load
+        // Supabase auto-detect tokens di URL hash saat page reload
+        var webUrl = url.replace('com.cibay.lokasisekitar://', 'https://localhost/');
+        window.location.replace(webUrl);
       });
       log('Auth', 'Deep link listener ready');
     }
