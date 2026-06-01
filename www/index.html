@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Lokasi Sekitar</title>
   <link rel="stylesheet" href="lib/leaflet.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;min-height:100dvh}
@@ -462,22 +463,37 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In native (One Tap) via Capacitor plugin */
+/** Google Sign-In: native plugin dulu, fallback ke Google GIS library */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // Init Google Sign-In
-    if (typeof GoogleAuth !== 'undefined') {
-      try { await GoogleAuth.signOut(); } catch(e) {}
-      var gauth = await GoogleAuth.signIn();
+    // Coba native Capacitor plugin
+    var gAuth = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth) ? Capacitor.Plugins.GoogleAuth : null;
+    // Coba Google GIS library (web-based)
+    var gLib = (typeof google !== 'undefined' && google.accounts && google.accounts.id) ? google.accounts.id : null;
+
+    if (gAuth) {
+      // Native Google Sign-In via Capacitor plugin
+      try { await gAuth.signOut(); } catch(e) {}
+      var gauth = await gAuth.signIn();
       if (!gauth || !gauth.authentication || !gauth.authentication.idToken) {
-        showToast('Gagal mendapatkan akun Google', 'error');
-        btn.disabled = false; btn.textContent = 'Masuk dengan Google';
-        return;
+        throw new Error('Gagal mendapatkan akun Google');
       }
-      // Sign in ke Supabase dengan ID token
       await signInSupabaseWithGoogleToken(gauth.authentication.idToken);
+    } else if (gLib) {
+      // Google Identity Services (web-based One Tap)
+      gLib.initialize({
+        client_id: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
+        callback: function(response) {
+          if (response.credential) {
+            signInSupabaseWithGoogleToken(response.credential);
+          }
+        }
+      });
+      gLib.prompt();
+      // Jangan re-enable button — GIS callback yang handle
+      return;
     } else {
       // Fallback: browser OAuth
       var redirectTo = 'com.cibay.lokasisekitar://auth/callback';
@@ -1444,14 +1460,18 @@ function setupDeepLinks() {
 /** Inisialisasi Google Sign-In native (Capacitor plugin) */
 function initGoogleAuth() {
   try {
-    if (typeof GoogleAuth !== 'undefined') {
-      GoogleAuth.initialize({
+    // Coba Capacitor plugin
+    var gAuth = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth) ? Capacitor.Plugins.GoogleAuth : 
+                (typeof GoogleAuth !== 'undefined') ? GoogleAuth : null;
+    if (gAuth) {
+      gAuth.initialize({
         clientId: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
         scopes: ['profile', 'email'],
         grantOfflineAccess: true
       });
-      log('Auth', 'GoogleAuth initialized');
+      log('Auth', 'GoogleAuth native initialized');
     }
+    // Google GIS library loads async, ga perlu init manual
   } catch(e) {
     log('Auth', 'GoogleAuth not available', e);
   }
