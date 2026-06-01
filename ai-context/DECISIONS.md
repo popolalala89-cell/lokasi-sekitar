@@ -138,3 +138,20 @@
 ---
 
 *Tambahkan DEC baru setiap kali membuat keputusan teknis.*
+
+---
+
+## DEC-008: Completion Gate — Wajib Update 7 Dokumentasi Sebelum Task Selesai
+- **Tanggal:** 2026-06-01
+- **Status:** Accepted
+- **Context:** Banyak task yang di-commit tanpa update dokumentasi. CURRENT_STATE, TASK_BOARD, dan CHANGELOG sering stale. Ini menyulitkan tracking progress dan handover antar agent.
+- **Decision:** Setiap task wajib melalui Completion Gate — 7 checklist item (kode, CURRENT_STATE, TASK_BOARD, CHANGELOG, DECISIONS, ERROR_HISTORY, LESSONS_LEARNED) harus diperbarui sebelum task dinyatakan selesai. Aturan dicatat di AGENTS.md section "Completion Gate".
+- **Alternatives considered:**
+  - Auto-generate documentation dari commit messages: terlalu rigid, kehilangan konteks
+  - Tidak ada gate: dokumentasi terus stale (status quo)
+- **Consequences:**
+  - ✅ Dokumentasi selalu up-to-date
+  - ✅ Handover antar agent lebih mulus
+  - ✅ Human bisa lacak progress tanpa buka kode
+  - ❌ Overhead waktu ~2-5 menit per task
+  - ❌ Wajib dipatuhi — kalau tidak, task dianggap tidak sah

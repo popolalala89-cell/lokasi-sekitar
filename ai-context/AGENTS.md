@@ -91,6 +91,45 @@ Setiap kali ada pelajaran penting dari error (lihat ERR-XXX), revisi, atau keput
 
 ---
 
+## 🚪 COMPLETION GATE — Gerbang Penyelesaian
+
+> **ATURAN MUTLAK:** Setiap task BELUM dianggap selesai sampai dokumentasi wajib diperbarui.
+> AI agent DILARANG menyatakan task selesai sebelum Completion Gate terpenuhi.
+
+### Sebelum Menyatakan Task Selesai, AI Agent Wajib:
+
+1. **Menjelaskan file yang diubah** — sebutkan path, alasan perubahan, dan dampaknya.
+2. **Memperbarui `ai-context/CURRENT_STATE.md`** — update versi, status fitur, ringkasan perubahan.
+3. **Memperbarui `ai-context/TASK_BOARD.md`** — mark task yang selesai (✅ done), update task yang sedang in_progress.
+4. **Memperbarui `CHANGELOG.md`** — catat perubahan dengan format: versi, tanggal, jenis (feat/fix/docs/refactor), deskripsi singkat.
+5. **Memperbarui `ai-context/DECISIONS.md`** — jika ada keputusan teknis baru yang dibuat selama task (format DEC-XXX).
+6. **Memperbarui `ai-context/ERROR_HISTORY.md`** — jika task berkaitan dengan bug/error (format ERR-XXX).
+7. **Memperbarui `ai-context/LESSONS_LEARNED.md`** — jika ada pelajaran penting dari task ini (format LL-XXX).
+
+### Checklist Wajib di Akhir Setiap Task
+
+Setiap kali menyelesaikan task, AI agent WAJIB menampilkan checklist ini dan mencentang satu per satu:
+
+```
+## ✅ Completion Gate Checklist
+
+- [ ] Kode sudah diubah / commit sudah dipush
+- [ ] CURRENT_STATE.md sudah diperbarui
+- [ ] TASK_BOARD.md sudah diperbarui
+- [ ] CHANGELOG.md sudah diperbarui
+- [ ] DECISIONS.md diperbarui (jika ada keputusan teknis baru)
+- [ ] ERROR_HISTORY.md diperbarui (jika task berkaitan dengan bug/error)
+- [ ] LESSONS_LEARNED.md diperbarui (jika ada pelajaran penting)
+```
+
+### Konsekuensi Pelanggaran
+
+- Task yang dinyatakan selesai tanpa Completion Gate = **TIDAK SAH.**
+- AI agent WAJIB mengulang dari langkah dokumentasi yang terlewat.
+- Human berhak menolak hasil kerja jika checklist tidak lengkap.
+
+---
+
 ## 🧠 Konteks Project
 
 ### Apa ini?
