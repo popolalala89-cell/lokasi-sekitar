@@ -1438,6 +1438,7 @@ function setupDeepLinks() {
         handleAuthCallback(url);
       });
       log('Auth', 'Deep link listener ready');
+      showToast('🔗 Deep link siap', 'success');
     }
   } catch(e) {
     log('Auth', 'Capacitor App plugin not available', e);
