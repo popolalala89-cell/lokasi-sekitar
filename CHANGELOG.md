@@ -1,5 +1,6 @@
 # CHANGELOG.md — Riwayat Perubahan
 
+<<<<<<< HEAD
 > **Format:** [Versi] — Tanggal | Jenis | Deskripsi
 > **Jenis:** `feat` (fitur baru), `fix` (perbaikan), `docs` (dokumentasi), `refactor` (rapikan kode)
 
@@ -98,3 +99,68 @@
 ---
 
 *Update setiap kali commit dengan perubahan signifikan.*
+=======
+> **Terakhir diupdate:** 1 Juni 2026
+
+---
+
+## [2.3.15] - 2026-06-01
+### Google Login — Implicit Flow + Hash Reload
+- **Fix:** `handleAuthCallback` simplifikasi — extract hash dari deep link → reload halaman dgn hash → Supabase auto-detect token
+- Balik ke implicit flow (bukan PKCE) — lebih simpel
+- Debug log ditambah di `handleAuthCallback`
+
+## [2.3.14] - 2026-06-01
+### Google Login — Fix Browser _blank
+- **Fix:** `Browser.open()` pakai `windowName: '_blank'` (Chrome Custom Tabs), sebelumnya `_self` (WebView) — Google blokir OAuth di WebView
+- **Root cause:** Google OAuth flow terjebak di WebView, tidak bisa redirect
+
+## [2.3.13] - 2026-06-01
+### Google Login — PKCE Flow
+- Ganti ke PKCE flow (`?code=` di query params) — lebih aman di Android intent
+- Debug log ditambah
+
+## [2.3.12] - 2026-06-01
+### Google Login — Token Parsing + checkLaunchUrl
+- `handleAuthCallback(url)` — parse token langsung dari deep link (hash + query)
+- `checkLaunchUrl()` — handle kasus app mati total & dibuka via deep link
+- Support `#access_token=` (hash) + `?code=` (PKCE)
+
+## [2.3.11] - 2026-06-01
+### Google Login — Chrome Custom Tabs OAuth
+- `handleGoogleLogin()`: `signInWithOAuth` + `skipBrowserRedirect` → `Browser.open()` Chrome Custom Tabs
+- Ganti dari plugin native ke browser OAuth (plugin native = ES module, ga kompatibel dgn vanilla HTML)
+
+## [2.3.10] - 2026-06-01
+### Google Login — Native Capacitor Plugin
+- `handleGoogleLogin()`: pakai `@codetrix-studio/capacitor-google-auth` native plugin
+- Flow: `GoogleAuth.signIn()` → ID token → `signInSupabaseWithGoogleToken()` → Supabase REST API
+- **Blocked:** Plugin ES module, tidak terdaftar di `Capacitor.Plugins` tanpa bundler
+
+## [2.3.9] - 2026-06-01
+### Google Login — GIS One Tap
+- `handleGoogleLogin()`: Google GIS One Tap → ID token → Supabase REST
+- **Blocked:** Google blokir GIS di WebView Android
+
+---
+
+## [2.2.1] - 2026-05-31
+- Fix: Leaderboard gagal load (ERR-005) — Ganti join syntax
+- Fix: Error kirim laporan misi (ERR-006) — Fallback graceful
+- Update ERROR_HISTORY.md
+
+## [2.2.0] - 2026-05-31
+- Fitur: Leaderboard, Profil Informan, Badge, Realtime Notifikasi
+- Setup Supabase Realtime publication
+
+## [2.1.0] - 2026-05-31
+- Fitur: Misi (buat, cari, lapor ke misi), Paket Pedagang (beli, kuota)
+- SQL: `missions`, `packages`, RLS, trigger auto-close & quota
+
+## [2.0.1] - 2026-05-31
+- Maintenance: Refactor `index.html`, security hardening, `alert()` → `showToast()`
+- Dokumentasi: Fondasi lengkap (28 file)
+
+## [2.0.0] - 2026-05-31
+- Inisiasi dokumentasi fondasi dan standarisasi project
+>>>>>>> 543851c (docs: Update dokumentasi — Google Login v2.3.15, ERROR_HISTORY, LESSONS_LEARNED, CHANGELOG)

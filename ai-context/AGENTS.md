@@ -210,5 +210,36 @@ Tiga role: **Informan** (lapor), **Pedagang** (konsumsi info), **Admin** (verifi
 
 ---
 
-*Agent yang melanggar aturan ini = pekerjaannya ditolak.*
+## ✅ COMPLETION GATE — Mekanisme Penyelesaian Task
+
+> **WAJIB:** Setiap task belum dianggap **selesai** sampai semua poin di bawah ini terpenuhi.
+> Jangan menyatakan task selesai sebelum checklist lengkap terisi.
+
+### Aturan Wajib
+Sebelum menyatakan task selesai, AI agent **WAJIB**:
+1. Menjelaskan file yang diubah (termasuk apa yang ditambah, diubah, atau dihapus)
+2. Memperbarui `CURRENT_STATE.md` dengan kondisi project terkini
+3. Memperbarui `TASK_BOARD.md` (menandai task sebagai selesai)
+4. Memperbarui `CHANGELOG.md` dengan entri baru untuk perubahan ini
+5. Memperbarui `DECISIONS.md` jika ada keputusan teknis baru
+6. Memperbarui `ERROR_HISTORY.md` jika task terkait dengan perbaikan bug/error
+7. Memperbarui `LESSONS_LEARNED.md` jika ada pelajaran penting dari task ini
+
+### Checklist Wajib (Harus Muncul di Akhir Setiap Task)
+Setelah semua perubahan dibuat, sertakan checklist berikut dan pastikan semua item tercentang:
+- [ ] Kode sudah diubah
+- [ ] `CURRENT_STATE.md` sudah diperbarui
+- [ ] `TASK_BOARD.md` sudah diperbarui
+- [ ] `CHANGELOG.md` sudah diperbarui
+- [ ] `DECISIONS.md` diperbarui jika diperlukan
+- [ ] `ERROR_HISTORY.md` diperbarui jika diperlukan
+- [ ] `LESSONS_LEARNED.md` diperbarui jika diperlukan
+
+### Sanksi Pelanggaran
+AI agent **TIDAK BOLEH** menyatakan task selesai sebelum Completion Gate terpenuhi.
+Pelanggaran aturan ini akan menyebabkan pekerjaan ditolak dan harus diulang.
+
+---
+
+## 🧠 Konteks Project
 *File ini adalah living document — update setiap kali ada aturan baru.*
