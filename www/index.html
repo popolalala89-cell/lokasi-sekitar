@@ -372,6 +372,14 @@ function log(module, msg, data) {
 function init() {
   if (typeof supabase !== 'undefined') {
     db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // DEBUG: check Capacitor bridge
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins) {
+      log('Debug', 'Capacitor plugins: ' + Object.keys(Capacitor.Plugins).join(', '));
+      showToast('Plugin: ' + Object.keys(Capacitor.Plugins).join(', '), 'info');
+    } else {
+      log('Debug', 'Capacitor NOT available');
+      showToast('Capacitor TIDAK tersedia', 'error');
+    }
     checkSession();
   } else {
     setTimeout(init, 500);
