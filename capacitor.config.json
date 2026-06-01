@@ -13,7 +13,7 @@
       "showSpinner": true
     },
     "App": {
-      "deepLinks": ["lokasisekitar"]
+      "deepLinks": ["com.cibay.lokasisekitar"]
     }
   }
 }
