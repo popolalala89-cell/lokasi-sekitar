@@ -468,13 +468,12 @@ async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // 1. Dapatkan OAuth authorize URL (PKCE — code di query params, bukan hash)
+    // 1. Dapatkan OAuth authorize URL (implicit — token di hash)
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: 'com.cibay.lokasisekitar://auth/callback',
-        skipBrowserRedirect: true,
-        flowType: 'pkce'
+        skipBrowserRedirect: true
       }
     });
     if (error) throw new Error(error.message);
@@ -1439,53 +1438,49 @@ function setupDeepLinks() {
   }
 }
 
-/** Proses callback OAuth dari Supabase — support code exchange & hash token */
-async function handleAuthCallback(url) {
-  log('Auth', 'handleAuthCallback: ' + url.substring(0, 80));
+/** Proses callback OAuth dari Supabase — reload halaman dgn hash token */
+function handleAuthCallback(url) {
+  log('Auth', 'handleAuthCallback: ' + url.substring(0, 100));
   try {
-    // Ekstrak hash fragment (#access_token=...&refresh_token=...)
-    var hash = url.split('#')[1];
-    if (hash) {
-      var params = {};
-      hash.split('&').forEach(function(p) {
-        var kv = p.split('=');
-        params[kv[0]] = decodeURIComponent(kv[1] || '');
-      });
-      if (params.access_token && params.refresh_token) {
-        await db.auth.setSession({
-          access_token: params.access_token,
-          refresh_token: params.refresh_token
+    // Coba ekstrak hash (#access_token=...&refresh_token=...)
+    var hashIdx = url.indexOf('#');
+    if (hashIdx >= 0) {
+      var hash = url.substring(hashIdx); // termasuk #
+      // Reload halaman dgn hash — Supabase auto-detect token
+      showToast('🔐 Memproses login...', 'info');
+      window.location.replace(window.location.origin + '/' + hash);
+      return;
+    }
+    
+    // Coba ekstrak query (?code=...)
+    var qIdx = url.indexOf('?');
+    if (qIdx >= 0) {
+      var queryStr = url.substring(qIdx + 1);
+      var parts = queryStr.split('&');
+      var code = null;
+      for (var i = 0; i < parts.length; i++) {
+        var kv = parts[i].split('=');
+        if (kv[0] === 'code') { code = decodeURIComponent(kv[1] || ''); break; }
+      }
+      if (code) {
+        showToast('🔐 Menukar kode login...', 'info');
+        db.auth.exchangeCodeForSession(code).then(function(result) {
+          if (result.error) {
+            showToast('Gagal: ' + result.error.message, 'error');
+            var btn = document.getElementById('googleBtn');
+            if (btn) { btn.disabled = false; btn.textContent = 'Masuk dengan Google'; }
+          } else {
+            showToast('✅ Login Google berhasil!', 'success');
+            loadProfile().then(function() {
+              if (profile) showPage(getDashboardForRole(profile.role));
+            });
+          }
         });
-        var { data: { user }, error: userErr } = await db.auth.getUser();
-        if (!userErr && user) {
-          showToast('✅ Login Google berhasil!', 'success');
-          await loadProfile();
-          if (profile) showPage(getDashboardForRole(profile.role));
-          return;
-        }
+        return;
       }
     }
     
-    // Ekstrak query params (?code=...)
-    var queryStr = url.split('?')[1];
-    if (queryStr) {
-      var qParams = {};
-      queryStr.split('&').forEach(function(p) {
-        var kv = p.split('=');
-        qParams[kv[0]] = decodeURIComponent(kv[1] || '');
-      });
-      if (qParams.code) {
-        var { error: exchErr } = await db.auth.exchangeCodeForSession(qParams.code);
-        if (!exchErr) {
-          showToast('✅ Login Google berhasil!', 'success');
-          await loadProfile();
-          if (profile) showPage(getDashboardForRole(profile.role));
-          return;
-        }
-      }
-    }
-    
-    showToast('Gagal memproses login, coba lagi', 'error');
+    showToast('URL callback tidak dikenal', 'error');
   } catch(e) {
     showToast('Error: ' + (e.message || e), 'error');
   }
