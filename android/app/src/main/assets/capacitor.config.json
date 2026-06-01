@@ -3,13 +3,19 @@
 	"appName": "Lokasi Sekitar",
 	"webDir": "www",
 	"server": {
-		"androidScheme": "https"
+		"androidScheme": "https",
+		"hostname": "lokasisekitar.app"
 	},
 	"plugins": {
 		"SplashScreen": {
 			"launchShowDuration": 2000,
 			"backgroundColor": "#FF6B35",
 			"showSpinner": true
+		},
+		"App": {
+			"deepLinks": [
+				"com.cibay.lokasisekitar"
+			]
 		}
 	}
 }

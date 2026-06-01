@@ -463,11 +463,10 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In: Buka browser + polling session tiap 3 detik */
+/** Google Sign-In: Chrome Custom Tabs + deep link callback */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
-  var pollTimer = null, pollCount = 0;
   try {
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
@@ -480,32 +479,23 @@ async function handleGoogleLogin() {
     if (error) throw new Error(error.message);
     if (!data || !data.url) throw new Error('Gagal mendapatkan link login');
     
-    // Buka di browser HP
-    window.open(data.url, '_system');
-    showToast('🔑 Login di browser, kembali ke app setelah selesai', 'info');
+    // Buka di Chrome Custom Tabs (Browser plugin udah tersedia)
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
+      await Capacitor.Plugins.Browser.open({ url: data.url, windowName: '_blank' });
+    } else {
+      window.open(data.url, '_system');
+    }
+    // setupDeepLinks() akan tangkap redirect balik → handleAuthCallback
     
-    // Polling session tiap 3 detik — deteksi kapan login selesai
-    pollTimer = setInterval(async function() {
-      pollCount++;
-      try {
-        var r = await db.auth.getSession();
-        if (r.data.session) {
-          clearInterval(pollTimer);
-          user = r.data.session.user;
-          showToast('✅ Login Google berhasil!', 'success');
-          await loadProfile();
-          if (profile) showPage(getDashboardForRole(profile.role));
-          return;
-        }
-      } catch(e) {}
-      if (pollCount >= 25) {
-        clearInterval(pollTimer);
-        btn.disabled = false; btn.textContent = 'Masuk dengan Google';
+    // Timeout 90 detik — re-enable button kalau ga selesai
+    setTimeout(function() {
+      var b = document.getElementById('googleBtn');
+      if (b && b.disabled && b.textContent === 'Menghubungkan...') {
+        b.disabled = false; b.textContent = 'Masuk dengan Google';
       }
-    }, 3000);
+    }, 90000);
   } catch(err) {
     showToast('Error: ' + (err.message || err), 'error');
-    if (pollTimer) clearInterval(pollTimer);
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
   }
 }
