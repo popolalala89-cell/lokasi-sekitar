@@ -1429,16 +1429,66 @@ function setupDeepLinks() {
         var url = data.url;
         if (!url || !url.includes('auth/callback')) return;
         showToast('🔐 Memproses login...', 'info');
-        // Convert custom scheme ke https://localhost agar WebView bisa load
-        // Supabase auto-detect tokens di URL hash saat page reload
-        var webUrl = url.replace('com.cibay.lokasisekitar://', 'https://localhost/');
-        window.location.replace(webUrl);
+        handleAuthCallback(url);
       });
       log('Auth', 'Deep link listener ready');
     }
   } catch(e) {
     log('Auth', 'Capacitor App plugin not available', e);
   }
+}
+
+/** Proses callback OAuth dari Supabase — support code exchange & hash token */
+async function handleAuthCallback(url) {
+  try {
+    // Ekstrak hash fragment (#access_token=...&refresh_token=...)
+    var hash = url.split('#')[1];
+    if (hash) {
+      var params = {};
+      hash.split('&').forEach(function(p) {
+        var kv = p.split('=');
+        params[kv[0]] = decodeURIComponent(kv[1] || '');
+      });
+      if (params.access_token && params.refresh_token) {
+        await db.auth.setSession({
+          access_token: params.access_token,
+          refresh_token: params.refresh_token
+        });
+        var { data: { user }, error: userErr } = await db.auth.getUser();
+        if (!userErr && user) {
+          showToast('✅ Login Google berhasil!', 'success');
+          await loadProfile();
+          if (profile) showPage(getDashboardForRole(profile.role));
+          return;
+        }
+      }
+    }
+    
+    // Ekstrak query params (?code=...)
+    var queryStr = url.split('?')[1];
+    if (queryStr) {
+      var qParams = {};
+      queryStr.split('&').forEach(function(p) {
+        var kv = p.split('=');
+        qParams[kv[0]] = decodeURIComponent(kv[1] || '');
+      });
+      if (qParams.code) {
+        var { error: exchErr } = await db.auth.exchangeCodeForSession(qParams.code);
+        if (!exchErr) {
+          showToast('✅ Login Google berhasil!', 'success');
+          await loadProfile();
+          if (profile) showPage(getDashboardForRole(profile.role));
+          return;
+        }
+      }
+    }
+    
+    showToast('Gagal memproses login, coba lagi', 'error');
+  } catch(e) {
+    showToast('Error: ' + (e.message || e), 'error');
+  }
+  var btn = document.getElementById('googleBtn');
+  if (btn) { btn.disabled = false; btn.textContent = 'Masuk dengan Google'; }
 }
 
 /** Inisialisasi Google Sign-In native (Capacitor plugin) */
@@ -1469,7 +1519,21 @@ document.addEventListener('DOMContentLoaded', function() {
   setupRealtime();
   setupDeepLinks();
   initGoogleAuth();
+  // Cek apakah app dibuka via deep link (app sempat mati)
+  checkLaunchUrl();
 });
+
+/** Cek apakah app dibuka via deep link OAuth */
+async function checkLaunchUrl() {
+  try {
+    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
+      var { value: launchUrl } = await Capacitor.Plugins.App.getLaunchUrl();
+      if (launchUrl && launchUrl.includes('auth/callback')) {
+        handleAuthCallback(launchUrl);
+      }
+    }
+  } catch(e) {}
+}
 </script>
 </body>
 </html>
