@@ -463,24 +463,36 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In: WebView-based OAuth, tanpa browser external */
+/** Google Sign-In: Google GIS One Tap → ID token → Supabase REST */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // Biarkan Supabase redirect WebView langsung — tanpa buka browser
-    var { error } = await db.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: { prompt: 'select_account' }
+    // Google GIS library (accounts.google.com/gsi/client) sudah di-load di <head>
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+      // Fallback: coba tunggu GIS load
+      showToast('Menunggu Google Sign-In siap...', 'info');
+      await new Promise(function(resolve) { setTimeout(resolve, 2000); });
+      if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+        throw new Error('Google Sign-In tidak tersedia. Coba lagi nanti.');
       }
-    });
-    if (error) {
-      showToast('Gagal: ' + error.message, 'error');
-      btn.disabled = false; btn.textContent = 'Masuk dengan Google';
     }
-    // Kalau sukses, page akan redirect ke Google → kembali dgn session
+    var gisClient = google.accounts.id;
+    gisClient.initialize({
+      client_id: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
+      callback: function(response) {
+        if (response.credential) {
+          signInSupabaseWithGoogleToken(response.credential);
+        } else {
+          showToast('Gagal mendapatkan akun Google', 'error');
+          btn.disabled = false; btn.textContent = 'Masuk dengan Google';
+        }
+      },
+      auto_select: false,
+      cancel_on_tap_outside: false
+    });
+    gisClient.prompt(); // Tampilkan One Tap prompt
+    // Jangan re-enable button — callback yang handle
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
