@@ -470,7 +470,7 @@ async function handleGoogleLogin() {
     var redirectTo = 'com.cibay.lokasisekitar://auth/callback';
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: redirectTo, skipBrowserRedirect: true }
+      options: { redirectTo: redirectTo }
     });
     if (error) { showToast('Gagal: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Masuk dengan Google'; return; }
     // Buka URL OAuth di browser sistem
