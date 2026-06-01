@@ -33,6 +33,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.cibay.lokasisekitar" />
             </intent-filter>
+            <!-- OAuth redirect via https://localhost -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="localhost" android:pathPrefix="/auth/callback" />
+            </intent-filter>
         </activity>
 
         <provider
