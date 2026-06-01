@@ -479,6 +479,7 @@ async function handleGoogleLogin() {
     if (!data || !data.url) throw new Error('Gagal mendapatkan link login');
     
     // Buka di Chrome Custom Tabs (Browser plugin udah tersedia)
+    _googleLoginPending = true;
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
       await Capacitor.Plugins.Browser.open({ url: data.url, windowName: '_blank' });
     } else {
@@ -1512,7 +1513,30 @@ document.addEventListener('DOMContentLoaded', function() {
   checkLaunchUrl();
   // Juga cek current URL — kalau WebView direload dgn code OAuth
   checkCurrentUrlForOAuth();
+  // Visibility change — safety net saat balik dari Chrome
+  document.addEventListener('visibilitychange', onVisibilityChange);
 });
+
+/** Safety net: saat app balik dari Chrome, cek OAuth */
+var _googleLoginPending = false;
+function onVisibilityChange() {
+  if (document.hidden) return; // app backgrounded
+  // App balik ke foreground
+  if (_googleLoginPending) {
+    _googleLoginPending = false;
+    // Coba detect session — mungkin udah tersimpan
+    setTimeout(async function() {
+      try {
+        var r = await db.auth.getSession();
+        if (r.data.session) {
+          user = r.data.session.user;
+          await loadProfile();
+          if (profile) showPage(getDashboardForRole(profile.role));
+        }
+      } catch(e) {}
+    }, 500);
+  }
+}
 
 /** Cek current URL — handle kalau WebView direload dgn OAuth params */
 function checkCurrentUrlForOAuth() {
