@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Lokasi Sekitar</title>
   <link rel="stylesheet" href="lib/leaflet.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:Arial,sans-serif;background:#f5f5f5;min-height:100vh;min-height:100dvh}
@@ -283,8 +282,6 @@
 <!-- ==================== SCRIPTS ==================== -->
 <script src="lib/supabase.min.js"></script>
 <script src="lib/leaflet.js"></script>
-<script src="lib/capacitor-app.js"></script>
-<script src="lib/capacitor-browser.js"></script>
 <script>
 // ====================================================================
 // LOKASI SEKITAR v2.0.1
@@ -374,14 +371,6 @@ function log(module, msg, data) {
 function init() {
   if (typeof supabase !== 'undefined') {
     db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    // DEBUG: check Capacitor bridge
-    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins) {
-      log('Debug', 'Capacitor plugins: ' + Object.keys(Capacitor.Plugins).join(', '));
-      showToast('Plugin: ' + Object.keys(Capacitor.Plugins).join(', '), 'info');
-    } else {
-      log('Debug', 'Capacitor NOT available');
-      showToast('Capacitor TIDAK tersedia', 'error');
-    }
     checkSession();
   } else {
     setTimeout(init, 500);
@@ -481,8 +470,9 @@ async function handleGoogleLogin() {
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://localhost',
+        redirectTo: 'https://lokasisekitar.app',
         skipBrowserRedirect: true,
+        flowType: 'pkce',
         queryParams: { prompt: 'select_account' }
       }
     });
@@ -1443,7 +1433,9 @@ function setupDeepLinks() {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
       Capacitor.Plugins.App.addListener('appUrlOpen', function(data) {
         var url = data.url;
-        if (!url || !url.includes('auth/callback')) return;
+        // Accept: custom scheme callback OR Capacitor origin with code/token
+        if (!url) return;
+        if (!url.includes('auth/callback') && !url.includes('lokasisekitar.app')) return;
         showToast('🔐 Memproses login...', 'info');
         handleAuthCallback(url);
       });
@@ -1506,25 +1498,9 @@ function handleAuthCallback(url) {
   if (btn) { btn.disabled = false; btn.textContent = 'Masuk dengan Google'; }
 }
 
-/** Inisialisasi Google Sign-In native (Capacitor plugin) */
-function initGoogleAuth() {
-  try {
-    // Coba Capacitor plugin
-    var gAuth = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth) ? Capacitor.Plugins.GoogleAuth : 
-                (typeof GoogleAuth !== 'undefined') ? GoogleAuth : null;
-    if (gAuth) {
-      gAuth.initialize({
-        clientId: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
-        scopes: ['profile', 'email'],
-        grantOfflineAccess: true
-      });
-      log('Auth', 'GoogleAuth native initialized');
-    }
-    // Google GIS library loads async, ga perlu init manual
-  } catch(e) {
-    log('Auth', 'GoogleAuth not available', e);
-  }
-}
+/** Placeholder — native Google Auth plugin tidak dipakai (ES module ≠ vanilla HTML).
+ *  Google login via Chrome Custom Tabs + deep link. */
+function initGoogleAuth() { /* intentionally empty */ }
 
 // ====================================================================
 // INIT
@@ -1533,17 +1509,26 @@ document.addEventListener('DOMContentLoaded', function() {
   init();
   setupRealtime();
   setupDeepLinks();
-  initGoogleAuth();
   // Cek apakah app dibuka via deep link (app sempat mati)
   checkLaunchUrl();
+  // Juga cek current URL — kalau WebView direload dgn code OAuth
+  checkCurrentUrlForOAuth();
 });
+
+/** Cek current URL — handle kalau WebView direload dgn OAuth params */
+function checkCurrentUrlForOAuth() {
+  var href = window.location.href;
+  if (href && (href.includes('?code=') || href.includes('#access_token='))) {
+    handleAuthCallback(href);
+  }
+}
 
 /** Cek apakah app dibuka via deep link OAuth */
 async function checkLaunchUrl() {
   try {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
       var { value: launchUrl } = await Capacitor.Plugins.App.getLaunchUrl();
-      if (launchUrl && launchUrl.includes('auth/callback')) {
+      if (launchUrl && (launchUrl.includes('auth/callback') || launchUrl.includes('lokasisekitar.app'))) {
         handleAuthCallback(launchUrl);
       }
     }
