@@ -470,7 +470,7 @@ async function handleGoogleLogin() {
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://lokasisekitar.app',
+        redirectTo: 'com.cibay.lokasisekitar://auth/callback',
         skipBrowserRedirect: true,
         flowType: 'pkce',
         queryParams: { prompt: 'select_account' }
@@ -1433,9 +1433,7 @@ function setupDeepLinks() {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
       Capacitor.Plugins.App.addListener('appUrlOpen', function(data) {
         var url = data.url;
-        // Accept: custom scheme callback OR Capacitor origin with code/token
-        if (!url) return;
-        if (!url.includes('auth/callback') && !url.includes('lokasisekitar.app')) return;
+        if (!url || !url.includes('auth/callback')) return;
         showToast('🔐 Memproses login...', 'info');
         handleAuthCallback(url);
       });
@@ -1528,7 +1526,7 @@ async function checkLaunchUrl() {
   try {
     if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.App) {
       var { value: launchUrl } = await Capacitor.Plugins.App.getLaunchUrl();
-      if (launchUrl && (launchUrl.includes('auth/callback') || launchUrl.includes('lokasisekitar.app'))) {
+      if (launchUrl && launchUrl.includes('auth/callback')) {
         handleAuthCallback(launchUrl);
       }
     }

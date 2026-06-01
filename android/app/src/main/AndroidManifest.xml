@@ -26,19 +26,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Deep link untuk Google OAuth redirect (custom scheme — fallback) -->
+            <!-- Deep link untuk Google OAuth redirect -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.cibay.lokasisekitar" />
-            </intent-filter>
-            <!-- Deep link untuk Google OAuth redirect (Capacitor origin — primary) -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="lokasisekitar.app" />
             </intent-filter>
         </activity>
 
