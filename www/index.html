@@ -463,38 +463,32 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In: Google GIS One Tap → ID token → Supabase REST */
+/** Google Sign-In: Native Capacitor plugin (codetrix-studio) */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // Google GIS library (accounts.google.com/gsi/client) sudah di-load di <head>
-    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-      // Fallback: coba tunggu GIS load
-      showToast('Menunggu Google Sign-In siap...', 'info');
-      await new Promise(function(resolve) { setTimeout(resolve, 2000); });
-      if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-        throw new Error('Google Sign-In tidak tersedia. Coba lagi nanti.');
-      }
+    // Deteksi plugin native (sama seperti di initGoogleAuth)
+    var gAuth = (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.GoogleAuth) ? Capacitor.Plugins.GoogleAuth : 
+                (typeof GoogleAuth !== 'undefined') ? GoogleAuth : null;
+    if (!gAuth) {
+      throw new Error('Google Sign-In native tidak tersedia');
     }
-    var gisClient = google.accounts.id;
-    gisClient.initialize({
-      client_id: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
-      callback: function(response) {
-        if (response.credential) {
-          signInSupabaseWithGoogleToken(response.credential);
-        } else {
-          showToast('Gagal mendapatkan akun Google', 'error');
-          btn.disabled = false; btn.textContent = 'Masuk dengan Google';
-        }
-      },
-      auto_select: false,
-      cancel_on_tap_outside: false
-    });
-    gisClient.prompt(); // Tampilkan One Tap prompt
-    // Jangan re-enable button — callback yang handle
+    // Sign out dulu biar bisa pilih akun
+    try { await gAuth.signOut(); } catch(e) {}
+    // Sign in → dapat ID token
+    var result = await gAuth.signIn();
+    if (!result || !result.authentication || !result.authentication.idToken) {
+      throw new Error('Gagal mendapatkan akun Google');
+    }
+    // Tukar ID token ke Supabase session
+    await signInSupabaseWithGoogleToken(result.authentication.idToken);
   } catch(err) {
-    showToast('Error: ' + err.message, 'error');
+    if (err.message && err.message.includes('cancel')) {
+      showToast('Login dibatalkan', 'info');
+    } else {
+      showToast('Error: ' + (err.message || err), 'error');
+    }
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
   }
 }
