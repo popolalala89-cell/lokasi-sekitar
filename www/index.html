@@ -463,31 +463,32 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google Sign-In: Chrome Custom Tabs OAuth → deep link callback */
+/** Google Sign-In: Buka di browser system — Supabase handle redirect sendiri */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    // 1. Dapatkan OAuth authorize URL (implicit — token di hash)
+    // signInWithOAuth dgn skipBrowserRedirect — kita handle redirect manual
     var { data, error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: 'com.cibay.lokasisekitar://auth/callback',
-        skipBrowserRedirect: true
+        skipBrowserRedirect: true,
+        queryParams: { prompt: 'select_account' }
       }
     });
     if (error) throw new Error(error.message);
     if (!data || !data.url) throw new Error('Gagal mendapatkan link login');
-
-    // 2. Buka di Chrome Custom Tabs (_blank = external)
-    if (typeof Capacitor !== 'undefined' && Capacitor.Plugins && Capacitor.Plugins.Browser) {
-      await Capacitor.Plugins.Browser.open({ url: data.url, windowName: '_blank' });
-    } else {
-      // Fallback: buka di browser system
-      window.open(data.url, '_system');
-    }
-    // Redirect balik ditangani setupDeepLinks() → appUrlOpen
-    // Jangan re-enable button — app akan reload via deep link
+    // Buka di system browser
+    window.open(data.url, '_system');
+    // handleAuthCallback akan proses token saat redirect balik via deep link
+    // Timeout 60 detik — re-enable button kalau user ga selesai login
+    setTimeout(function() {
+      var b = document.getElementById('googleBtn');
+      if (b && b.disabled && b.textContent === 'Menghubungkan...') {
+        b.disabled = false; b.textContent = 'Masuk dengan Google';
+      }
+    }, 60000);
   } catch(err) {
     showToast('Error: ' + (err.message || err), 'error');
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
@@ -1440,6 +1441,8 @@ function setupDeepLinks() {
 
 /** Proses callback OAuth dari Supabase — reload halaman dgn hash token */
 function handleAuthCallback(url) {
+  // DEBUG: tampilkan URL yang diterima
+  showToast('URL: ' + url.substring(0, 60) + '...', 'info');
   log('Auth', 'handleAuthCallback: ' + url.substring(0, 100));
   try {
     // Coba ekstrak hash (#access_token=...&refresh_token=...)
