@@ -462,25 +462,65 @@ async function handleLogout() {
   showPage('loginPg');
 }
 
-/** Google OAuth Login via Supabase */
+/** Google Sign-In native (One Tap) via Capacitor plugin */
 async function handleGoogleLogin() {
   var btn = document.getElementById('googleBtn');
   btn.disabled = true; btn.textContent = 'Menghubungkan...';
   try {
-    var redirectTo = 'com.cibay.lokasisekitar://auth/callback';
-    var { data, error } = await db.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: redirectTo }
-    });
-    if (error) { showToast('Gagal: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Masuk dengan Google'; return; }
-    // Buka di browser sistem (handles custom scheme deep link)
-    if (data.url) {
-      window.open(data.url, '_system');
+    // Init Google Sign-In
+    if (typeof GoogleAuth !== 'undefined') {
+      try { await GoogleAuth.signOut(); } catch(e) {}
+      var gauth = await GoogleAuth.signIn();
+      if (!gauth || !gauth.authentication || !gauth.authentication.idToken) {
+        showToast('Gagal mendapatkan akun Google', 'error');
+        btn.disabled = false; btn.textContent = 'Masuk dengan Google';
+        return;
+      }
+      // Sign in ke Supabase dengan ID token
+      await signInSupabaseWithGoogleToken(gauth.authentication.idToken);
+    } else {
+      // Fallback: browser OAuth
+      var redirectTo = 'com.cibay.lokasisekitar://auth/callback';
+      var { data, error } = await db.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: redirectTo }
+      });
+      if (error) { showToast('Gagal: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Masuk dengan Google'; return; }
+      if (data.url) window.open(data.url, '_system');
     }
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
     btn.disabled = false; btn.textContent = 'Masuk dengan Google';
   }
+}
+
+/** Sign in ke Supabase pakai Google ID token via REST API */
+async function signInSupabaseWithGoogleToken(idToken) {
+  var resp = await fetch(
+    'https://dnpbyfpbbwkgsfwmzlva.supabase.co/auth/v1/token?grant_type=id_token',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY
+      },
+      body: JSON.stringify({ id_token: idToken, provider: 'google' })
+    }
+  );
+  var result = await resp.json();
+  if (result.error || !result.access_token) {
+    showToast('Gagal login: ' + (result.error_description || result.msg || 'unknown'), 'error');
+    var btn = document.getElementById('googleBtn');
+    btn.disabled = false; btn.textContent = 'Masuk dengan Google';
+    return;
+  }
+  await db.auth.setSession({
+    access_token: result.access_token,
+    refresh_token: result.refresh_token
+  });
+  showToast('✅ Login Google berhasil!', 'success');
+  await loadProfile();
+  if (profile) showPage(getDashboardForRole(profile.role));
 }
 
 // ====================================================================
@@ -1401,6 +1441,22 @@ function setupDeepLinks() {
   }
 }
 
+/** Inisialisasi Google Sign-In native (Capacitor plugin) */
+function initGoogleAuth() {
+  try {
+    if (typeof GoogleAuth !== 'undefined') {
+      GoogleAuth.initialize({
+        clientId: '910557972822-uedo3tv4uubjiudelf43tf7kga3gq9qa.apps.googleusercontent.com',
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true
+      });
+      log('Auth', 'GoogleAuth initialized');
+    }
+  } catch(e) {
+    log('Auth', 'GoogleAuth not available', e);
+  }
+}
+
 // ====================================================================
 // INIT
 // ====================================================================
@@ -1408,6 +1464,7 @@ document.addEventListener('DOMContentLoaded', function() {
   init();
   setupRealtime();
   setupDeepLinks();
+  initGoogleAuth();
 });
 </script>
 </body>

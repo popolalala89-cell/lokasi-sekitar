@@ -20,6 +20,7 @@
     "@capacitor/filesystem": "^5.2.2",
     "@capacitor/geolocation": "^5.0.8",
     "@capacitor/splash-screen": "^5.0.8",
+    "@codetrix-studio/capacitor-google-auth": "^3.3.6",
     "@supabase/supabase-js": "^2.39.0"
   }
 }
