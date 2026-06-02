@@ -3,8 +3,7 @@
   "appName": "Lokasi Sekitar",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
-    "hostname": "lokasisekitar.app"
+    "androidScheme": "https"
   },
   "plugins": {
     "SplashScreen": {
