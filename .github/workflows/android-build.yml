@@ -24,8 +24,8 @@ jobs:
     - name: Install dependencies
       run: npm install
         
-    - name: Copy web assets (no plugin overwrite)
-      run: npx cap copy android
+    - name: Sync Capacitor (plugins + web assets)
+      run: npx cap sync android
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
