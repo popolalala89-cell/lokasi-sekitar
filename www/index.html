@@ -376,9 +376,15 @@ function init() {
       if (Capacitor.Plugins && Object.keys(Capacitor.Plugins).length > 0) {
         var keys = Object.keys(Capacitor.Plugins);
         showToast('✅ Plugin: ' + keys.length + ' (' + keys.slice(0,3).join(',') + ')', 'success');
+        // Cek spesifik App & Browser
+        if (!Capacitor.Plugins.App) showToast('❌ App missing', 'error');
+        if (!Capacitor.Plugins.Browser) showToast('❌ Browser missing', 'error');
       } else {
         showToast('⚠️ Plugins kosong', 'warning');
       }
+      // Cek UMD globals
+      if (typeof capacitorApp !== 'undefined') showToast('UMD App loaded', 'info');
+      if (typeof capacitorBrowser !== 'undefined') showToast('UMD Browser loaded', 'info');
     } else {
       showToast('❌ Capacitor undefined', 'error');
     }
