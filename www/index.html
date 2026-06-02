@@ -371,18 +371,20 @@ function log(module, msg, data) {
 function init() {
   if (typeof supabase !== 'undefined') {
     db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Manual plugin injection (bypass cap sync yg mungkin ga include plugin native)
+    injectPlugins();
+
     // DEBUG: selalu tampilkan status Capacitor
     if (typeof Capacitor !== 'undefined') {
       if (Capacitor.Plugins && Object.keys(Capacitor.Plugins).length > 0) {
         var keys = Object.keys(Capacitor.Plugins);
-        showToast('✅ Plugin: ' + keys.length + ' (' + keys.slice(0,3).join(',') + ')', 'success');
-        // Cek spesifik App & Browser
+        showToast('✅ Plugin: ' + keys.length + ' (' + keys.slice(0,4).join(',') + ')', 'success');
         if (!Capacitor.Plugins.App) showToast('❌ App missing', 'error');
         if (!Capacitor.Plugins.Browser) showToast('❌ Browser missing', 'error');
       } else {
         showToast('⚠️ Plugins kosong', 'warning');
       }
-      // Cek UMD globals
       if (typeof capacitorApp !== 'undefined') showToast('UMD App loaded', 'info');
       if (typeof capacitorBrowser !== 'undefined') showToast('UMD Browser loaded', 'info');
     } else {
@@ -391,6 +393,45 @@ function init() {
     checkSession();
   } else {
     setTimeout(init, 500);
+  }
+}
+
+/** Inject plugin jika tidak ada di Capacitor registry */
+function injectPlugins() {
+  if (typeof Capacitor === 'undefined') return;
+  if (!Capacitor.Plugins) Capacitor.Plugins = {};
+
+  // Browser plugin — web fallback
+  if (!Capacitor.Plugins.Browser) {
+    Capacitor.Plugins.Browser = {
+      open: async function(options) {
+        return new Promise(function(resolve) {
+          window.open(options.url, options.windowName || '_blank');
+          resolve();
+        });
+      },
+      close: async function() { return Promise.resolve(); }
+    };
+    log('Inject', 'Browser plugin injected');
+  }
+
+  // App plugin — web fallback
+  if (!Capacitor.Plugins.App) {
+    Capacitor.Plugins.App = {
+      addListener: function(event, callback) {
+        log('Inject', 'App.addListener: ' + event);
+        // Web fallback: tidak bisa tangkap native events
+        // appUrlOpen akan ditangani via checkLaunchUrl + visibility change
+      },
+      getLaunchUrl: async function() {
+        return { url: window.location.href };
+      },
+      exitApp: function() {},
+      getInfo: async function() { return { name: 'Lokasi Sekitar', id: 'com.cibay.lokasisekitar', build: '1', version: '2.0' }; },
+      getState: async function() { return { isActive: true }; },
+      minimizeApp: async function() {}
+    };
+    log('Inject', 'App plugin injected (fallback)');
   }
 }
 
